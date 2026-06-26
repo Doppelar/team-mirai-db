@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import TagBadge from '../components/TagBadge'
@@ -77,8 +77,21 @@ export default function ReportsPage() {
     return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
   }
 
+  const shortTagIds = useMemo(() => {
+    const ids = agenda
+      .filter((tag) => {
+        const normalizedName = tag.name.toLowerCase()
+        return normalizedName.includes('ショート') || normalizedName.includes('short')
+      })
+      .map((tag) => tag.id)
+    return new Set(ids)
+  }, [agenda])
+
   const normalizedSearch = search.trim().toLowerCase()
   const filteredReports = reports.filter((report) => {
+    const hasShortTag = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
+    if (hasShortTag) return false
+
     const matchesTag = !activeTagId || report.agenda_ids.includes(activeTagId)
     if (!matchesTag) return false
     if (!normalizedSearch) return true
