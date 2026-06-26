@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import TagBadge from '../components/TagBadge'
@@ -39,7 +39,12 @@ function stringifyError(error: unknown): string {
   }
 }
 
-export default function ReportsPage() {
+function isShortTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('ショート') || normalizedName.includes('short')
+}
+
+export default function ShortsPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [agenda, setAgenda] = useState<Agenda[]>([])
@@ -71,6 +76,9 @@ export default function ReportsPage() {
     loadData()
   }, [])
 
+  const shortTags = useMemo(() => agenda.filter(isShortTag), [agenda])
+  const shortTagIds = useMemo(() => new Set(shortTags.map((tag) => tag.id)), [shortTags])
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -78,8 +86,12 @@ export default function ReportsPage() {
 
   const normalizedSearch = search.trim().toLowerCase()
   const filteredReports = reports.filter((report) => {
+    const hasShortTag = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
+    if (!hasShortTag) return false
+
     const matchesTag = !activeTagId || report.agenda_ids.includes(activeTagId)
     if (!matchesTag) return false
+
     if (!normalizedSearch) return true
 
     const reportTags = resolveAgenda(report.agenda_ids, agenda)
@@ -95,7 +107,7 @@ export default function ReportsPage() {
       <ConfigWarning show={!isSupabaseConfigured} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">週報一覧</h1>
+        <h1 className="text-2xl font-bold text-gray-900">ショート一覧</h1>
         <Link
           to="/reports/new"
           className="inline-flex items-center justify-center px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 transition-colors font-medium text-sm"
@@ -112,9 +124,9 @@ export default function ReportsPage() {
         />
       </div>
 
-      {agenda.length > 0 && (
+      {shortTags.length > 0 && (
         <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-2">タグで絞り込み</p>
+          <p className="text-sm font-medium text-gray-700 mb-2">ショートタグで絞り込み</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -127,7 +139,7 @@ export default function ReportsPage() {
             >
               すべて
             </button>
-            {agenda.map((tag) => (
+            {shortTags.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
@@ -149,9 +161,15 @@ export default function ReportsPage() {
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} onRetry={loadData} />}
 
-      {!loading && !error && filteredReports.length === 0 && (
+      {!loading && !error && shortTags.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          {search || activeTagId ? '検索結果がありません' : '週報がまだ登録されていません'}
+          「ショート」または「short」を含むタグを作成すると、ここに表示されます
+        </div>
+      )}
+
+      {!loading && !error && shortTags.length > 0 && filteredReports.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          {search || activeTagId ? '検索結果がありません' : 'ショート対象の週報がまだ登録されていません'}
         </div>
       )}
 
