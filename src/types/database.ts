@@ -3,6 +3,7 @@ export interface Member {
   name: string
   role: string
   bio: string
+  instagram_url: string
   avatar_url: string
   is_active: boolean
   created_at: string

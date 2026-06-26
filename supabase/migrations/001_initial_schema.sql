@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS members (
   name TEXT NOT NULL,
   role TEXT DEFAULT '',
   bio TEXT DEFAULT '',
+  instagram_url TEXT DEFAULT '',
   avatar_url TEXT DEFAULT '',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),

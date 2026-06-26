@@ -127,7 +127,7 @@ export default function ReportDetailPage() {
 
           {reportMembers.length > 0 && (
             <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-2">登録者</h2>
+              <h2 className="text-sm font-medium text-gray-500 mb-2">登壇者</h2>
               <div className="flex flex-wrap gap-2">
                 {reportMembers.map((member) => (
                   <span
@@ -140,6 +140,16 @@ export default function ReportDetailPage() {
                     {member.name}
                     {member.role && (
                       <span className="text-gray-400 text-xs">({member.role})</span>
+                    )}
+                    {member.instagram_url && (
+                      <a
+                        href={member.instagram_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-mirai-600 hover:text-mirai-800 text-xs"
+                      >
+                        Instagram
+                      </a>
                     )}
                   </span>
                 ))}

@@ -153,7 +153,7 @@ export default function ReportsPage() {
                   )}
                   {reportMembers.length > 0 && (
                     <p className="text-xs text-gray-500 mt-auto pt-2">
-                      登録者: {reportMembers.map((m) => m.name).join('、')}
+                      登壇者: {reportMembers.map((m) => m.name).join('、')}
                     </p>
                   )}
                 </div>

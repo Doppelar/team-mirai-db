@@ -12,7 +12,7 @@ import {
 } from '../lib/supabase'
 import type { Member } from '../types/database'
 
-const emptyForm = { name: '', role: '', bio: '', avatar_url: '', is_active: true }
+const emptyForm = { name: '', role: '', bio: '', instagram_url: '', avatar_url: '', is_active: true }
 
 function stringifyError(error: unknown): string {
   if (error instanceof Error) {
@@ -83,6 +83,7 @@ export default function MembersPage() {
       name: member.name,
       role: member.role,
       bio: member.bio,
+      instagram_url: member.instagram_url,
       avatar_url: member.avatar_url,
       is_active: member.is_active,
     })
@@ -183,6 +184,18 @@ export default function MembersPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500 resize-y"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Instagram URL
+                </label>
+                <input
+                  type="url"
+                  value={form.instagram_url}
+                  onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+                  placeholder="https://www.instagram.com/..."
+                />
+              </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -250,6 +263,16 @@ export default function MembersPage() {
                 </div>
                 {member.bio && (
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">{member.bio}</p>
+                )}
+                {member.instagram_url && (
+                  <a
+                    href={member.instagram_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-mirai-600 hover:text-mirai-800 mt-1 inline-block"
+                  >
+                    Instagram
+                  </a>
                 )}
                 <div className="flex gap-2 mt-3">
                   <button

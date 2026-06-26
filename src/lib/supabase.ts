@@ -69,6 +69,7 @@ function normalizeMember(row: Partial<Member>): Member {
     name: row.name ?? '',
     role: row.role ?? '',
     bio: row.bio ?? '',
+    instagram_url: row.instagram_url ?? '',
     avatar_url: row.avatar_url ?? '',
     is_active: row.is_active ?? true,
     created_at: row.created_at ?? '',
@@ -157,12 +158,20 @@ export async function fetchReport(id: string) {
 }
 
 export async function createReport(report: Omit<Report, 'id' | 'created_at' | 'updated_at'>) {
+  const reportWithId = {
+    id: crypto.randomUUID(),
+    ...report,
+  }
+
   const { data, error } = await supabase
     .from('reports')
-    .insert(report)
+    .insert(reportWithId)
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (isSingleResultZeroRowsError(error)) return normalizeReport(reportWithId)
+    throw error
+  }
   return normalizeReport(data as Partial<Report>)
 }
 
@@ -173,7 +182,10 @@ export async function updateReport(id: string, report: Partial<Report>) {
     .eq('id', id)
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (isSingleResultZeroRowsError(error)) return normalizeReport({ id, ...report })
+    throw error
+  }
   return normalizeReport(data as Partial<Report>)
 }
 

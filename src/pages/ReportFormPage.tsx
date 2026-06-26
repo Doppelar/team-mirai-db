@@ -82,8 +82,10 @@ export default function ReportFormPage() {
     load()
   }, [id])
 
-  const selectRegistrant = (memberId: string) => {
-    setSelectedMemberIds([memberId])
+  const toggleMember = (memberId: string) => {
+    setSelectedMemberIds((prev) =>
+      prev.includes(memberId) ? prev.filter((x) => x !== memberId) : [...prev, memberId]
+    )
   }
 
   const toggleAgenda = (agendaId: string) => {
@@ -205,7 +207,7 @@ export default function ReportFormPage() {
         </div>
 
         <div>
-          <span className="block text-sm font-medium text-gray-700 mb-2">登録者</span>
+          <span className="block text-sm font-medium text-gray-700 mb-2">登壇者</span>
           {members.length === 0 ? (
             <p className="text-sm text-gray-500">
               出演者が登録されていません。
@@ -225,10 +227,9 @@ export default function ReportFormPage() {
                   }`}
                 >
                   <input
-                    type="radio"
-                    name="registrant"
+                    type="checkbox"
                     checked={selectedMemberIds.includes(member.id)}
-                    onChange={() => selectRegistrant(member.id)}
+                    onChange={() => toggleMember(member.id)}
                     className="sr-only"
                   />
                   {member.name}
