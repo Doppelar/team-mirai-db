@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mirai-50: #eff6ff;
+  --color-mirai-100: #dbeafe;
+  --color-mirai-200: #bfdbfe;
+  --color-mirai-300: #93c5fd;
+  --color-mirai-400: #60a5fa;
+  --color-mirai-500: #3b82f6;
+  --color-mirai-600: #2563eb;
+  --color-mirai-700: #1d4ed8;
+  --color-mirai-800: #1e40af;
+  --color-mirai-900: #1e3a8a;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
