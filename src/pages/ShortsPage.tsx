@@ -78,6 +78,19 @@ export default function ShortsPage() {
 
   const shortTags = useMemo(() => agenda.filter(isShortTag), [agenda])
   const shortTagIds = useMemo(() => new Set(shortTags.map((tag) => tag.id)), [shortTags])
+  const shortReports = useMemo(
+    () => reports.filter((report) => report.agenda_ids.some((tagId) => shortTagIds.has(tagId))),
+    [reports, shortTagIds]
+  )
+  const selectableTags = useMemo(() => {
+    const tagIds = new Set<string>()
+    shortReports.forEach((report) => {
+      report.agenda_ids.forEach((tagId) => {
+        if (!shortTagIds.has(tagId)) tagIds.add(tagId)
+      })
+    })
+    return agenda.filter((tag) => tagIds.has(tag.id))
+  }, [agenda, shortReports, shortTagIds])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -85,11 +98,8 @@ export default function ShortsPage() {
   }
 
   const normalizedSearch = search.trim().toLowerCase()
-  const filteredReports = reports.filter((report) => {
-    const hasShortTag = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
-    if (!hasShortTag) return false
-
-    const matchesTag = !activeTagId || report.agenda_ids.includes(activeTagId)
+  const filteredReports = shortReports.filter((report) => {
+    const matchesTag = !activeTagId || (report.agenda_ids.includes(activeTagId) && !shortTagIds.has(activeTagId))
     if (!matchesTag) return false
 
     if (!normalizedSearch) return true
@@ -124,9 +134,9 @@ export default function ShortsPage() {
         />
       </div>
 
-      {shortTags.length > 0 && (
+      {selectableTags.length > 0 && (
         <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-2">ショートタグで絞り込み</p>
+          <p className="text-sm font-medium text-gray-700 mb-2">タグで絞り込み</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -139,7 +149,7 @@ export default function ShortsPage() {
             >
               すべて
             </button>
-            {shortTags.map((tag) => (
+            {selectableTags.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
@@ -177,7 +187,9 @@ export default function ShortsPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredReports.map((report) => {
             const reportMembers = resolveMembers(report.member_ids, members)
-            const reportTags = resolveAgenda(report.agenda_ids, agenda)
+            const reportTags = resolveAgenda(report.agenda_ids, agenda).filter(
+              (tag) => !shortTagIds.has(tag.id)
+            )
             const thumbnail = getYouTubeThumbnail(report.youtube_url)
 
             return (

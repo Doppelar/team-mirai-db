@@ -86,6 +86,10 @@ export default function ReportsPage() {
       .map((tag) => tag.id)
     return new Set(ids)
   }, [agenda])
+  const nonShortAgenda = useMemo(
+    () => agenda.filter((tag) => !shortTagIds.has(tag.id)),
+    [agenda, shortTagIds]
+  )
 
   const normalizedSearch = search.trim().toLowerCase()
   const filteredReports = reports.filter((report) => {
@@ -170,7 +174,7 @@ export default function ReportsPage() {
         </select>
       </div>
 
-      {agenda.length > 0 && (
+      {nonShortAgenda.length > 0 && (
         <div className="mb-6">
           <p className="text-sm font-medium text-gray-700 mb-2">タグで絞り込み</p>
           <div className="flex flex-wrap gap-2">
@@ -185,7 +189,7 @@ export default function ReportsPage() {
             >
               すべて
             </button>
-            {agenda.map((tag) => (
+            {nonShortAgenda.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
