@@ -45,6 +45,7 @@ export default function ReportsPage() {
   const [agenda, setAgenda] = useState<Agenda[]>([])
   const [search, setSearch] = useState('')
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'member' | 'tag'>('date_desc')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -90,6 +91,34 @@ export default function ReportsPage() {
       .includes(normalizedSearch)
   })
 
+  const sortedReports = [...filteredReports].sort((a, b) => {
+    if (sortBy === 'date_asc') {
+      return a.report_date.localeCompare(b.report_date)
+    }
+
+    if (sortBy === 'member') {
+      const aMembers = resolveMembers(a.member_ids, members)
+      const bMembers = resolveMembers(b.member_ids, members)
+      const aKey = aMembers.length > 0 ? aMembers.map((m) => m.name).sort().join(' ') : 'zzz'
+      const bKey = bMembers.length > 0 ? bMembers.map((m) => m.name).sort().join(' ') : 'zzz'
+      const byMember = aKey.localeCompare(bKey, 'ja')
+      if (byMember !== 0) return byMember
+      return b.report_date.localeCompare(a.report_date)
+    }
+
+    if (sortBy === 'tag') {
+      const aTags = resolveAgenda(a.agenda_ids, agenda)
+      const bTags = resolveAgenda(b.agenda_ids, agenda)
+      const aKey = aTags.length > 0 ? aTags.map((tag) => tag.name).sort().join(' ') : 'zzz'
+      const bKey = bTags.length > 0 ? bTags.map((tag) => tag.name).sort().join(' ') : 'zzz'
+      const byTag = aKey.localeCompare(bKey, 'ja')
+      if (byTag !== 0) return byTag
+      return b.report_date.localeCompare(a.report_date)
+    }
+
+    return b.report_date.localeCompare(a.report_date)
+  })
+
   return (
     <div>
       <ConfigWarning show={!isSupabaseConfigured} />
@@ -110,6 +139,22 @@ export default function ReportsPage() {
           onChange={setSearch}
           placeholder="タイトル・概要・タグで検索..."
         />
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">並び替え</label>
+        <select
+          value={sortBy}
+          onChange={(e) =>
+            setSortBy(e.target.value as 'date_desc' | 'date_asc' | 'member' | 'tag')
+          }
+          className="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-mirai-500"
+        >
+          <option value="date_desc">新しい順</option>
+          <option value="date_asc">古い順</option>
+          <option value="member">登壇者順</option>
+          <option value="tag">タグ順</option>
+        </select>
       </div>
 
       {agenda.length > 0 && (
@@ -149,15 +194,15 @@ export default function ReportsPage() {
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} onRetry={loadData} />}
 
-      {!loading && !error && filteredReports.length === 0 && (
+      {!loading && !error && sortedReports.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           {search || activeTagId ? '検索結果がありません' : '週報がまだ登録されていません'}
         </div>
       )}
 
-      {!loading && !error && filteredReports.length > 0 && (
+      {!loading && !error && sortedReports.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
-          {filteredReports.map((report) => {
+          {sortedReports.map((report) => {
             const reportMembers = resolveMembers(report.member_ids, members)
             const reportTags = resolveAgenda(report.agenda_ids, agenda)
             const thumbnail = getYouTubeThumbnail(report.youtube_url)
