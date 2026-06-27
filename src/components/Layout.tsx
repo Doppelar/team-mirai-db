@@ -6,6 +6,7 @@ const navItems = [
   { to: '/reports/new', label: '週報登録' },
   { to: '/members', label: '出演者' },
   { to: '/agenda', label: 'タグ管理' },
+  { to: '/links', label: 'リンク集' },
 ]
 
 export default function Layout() {

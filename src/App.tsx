@@ -6,6 +6,7 @@ import ReportFormPage from './pages/ReportFormPage'
 import MembersPage from './pages/MembersPage'
 import AgendaPage from './pages/AgendaPage'
 import ShortsPage from './pages/ShortsPage'
+import LinksPage from './pages/LinksPage'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="reports/:id/edit" element={<ReportFormPage />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="agenda" element={<AgendaPage />} />
+          <Route path="links" element={<LinksPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
