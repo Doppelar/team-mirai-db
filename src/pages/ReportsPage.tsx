@@ -45,6 +45,7 @@ export default function ReportsPage() {
   const [agenda, setAgenda] = useState<Agenda[]>([])
   const [search, setSearch] = useState('')
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
+  const [activeMemberId, setActiveMemberId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'member' | 'tag'>('date_desc')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,6 +96,9 @@ export default function ReportsPage() {
   const filteredReports = reports.filter((report) => {
     const hasShortTag = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
     if (hasShortTag) return false
+
+    const matchesMember = !activeMemberId || report.member_ids.includes(activeMemberId)
+    if (!matchesMember) return false
 
     const matchesTag = !activeTagId || report.agenda_ids.includes(activeTagId)
     if (!matchesTag) return false
@@ -174,6 +178,42 @@ export default function ReportsPage() {
         </select>
       </div>
 
+      {members.length > 0 && (
+        <div className="mb-6">
+          <p className="text-sm font-medium text-gray-700 mb-2">登壇者で絞り込み</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveMemberId(null)}
+              className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                activeMemberId === null
+                  ? 'bg-mirai-600 text-white border-mirai-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              すべて
+            </button>
+            {members
+              .filter((member) => member.is_active)
+              .map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => setActiveMemberId(member.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                    activeMemberId === member.id
+                      ? 'bg-mirai-600 text-white border-mirai-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                  }`}
+                  aria-pressed={activeMemberId === member.id}
+                >
+                  {member.name}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
       {nonShortAgenda.length > 0 && (
         <div className="mb-6">
           <p className="text-sm font-medium text-gray-700 mb-2">タグで絞り込み</p>
@@ -213,7 +253,9 @@ export default function ReportsPage() {
 
       {!loading && !error && sortedReports.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          {search || activeTagId ? '検索結果がありません' : '週報がまだ登録されていません'}
+          {search || activeTagId || activeMemberId
+            ? '検索結果がありません'
+            : '週報がまだ登録されていません'}
         </div>
       )}
 

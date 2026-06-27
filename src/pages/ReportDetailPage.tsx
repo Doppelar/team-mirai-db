@@ -134,9 +134,17 @@ export default function ReportDetailPage() {
                     key={member.id}
                     className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 text-sm"
                   >
-                    <span className="w-6 h-6 rounded-full bg-mirai-200 flex items-center justify-center text-xs font-medium text-mirai-700">
-                      {member.name.charAt(0)}
-                    </span>
+                    {member.avatar_url ? (
+                      <img
+                        src={member.avatar_url}
+                        alt={`${member.name}の顔写真`}
+                        className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <span className="w-6 h-6 rounded-full bg-mirai-200 flex items-center justify-center text-xs font-medium text-mirai-700">
+                        {member.name.charAt(0)}
+                      </span>
+                    )}
                     {member.name}
                     {member.role && (
                       <span className="text-gray-400 text-xs">({member.role})</span>
@@ -149,6 +157,16 @@ export default function ReportDetailPage() {
                         className="text-mirai-600 hover:text-mirai-800 text-xs"
                       >
                         Instagram
+                      </a>
+                    )}
+                    {member.x_url && (
+                      <a
+                        href={member.x_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-600 hover:text-sky-800 text-xs"
+                      >
+                        X
                       </a>
                     )}
                   </span>

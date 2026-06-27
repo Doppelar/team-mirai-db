@@ -70,6 +70,7 @@ function normalizeMember(row: Partial<Member>): Member {
     role: row.role ?? '',
     bio: row.bio ?? '',
     instagram_url: row.instagram_url ?? '',
+    x_url: row.x_url ?? '',
     avatar_url: row.avatar_url ?? '',
     is_active: row.is_active ?? true,
     created_at: row.created_at ?? '',

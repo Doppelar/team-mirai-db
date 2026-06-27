@@ -12,7 +12,15 @@ import {
 } from '../lib/supabase'
 import type { Member } from '../types/database'
 
-const emptyForm = { name: '', role: '', bio: '', instagram_url: '', avatar_url: '', is_active: true }
+const emptyForm = {
+  name: '',
+  role: '',
+  bio: '',
+  instagram_url: '',
+  x_url: '',
+  avatar_url: '',
+  is_active: true,
+}
 
 function stringifyError(error: unknown): string {
   if (error instanceof Error) {
@@ -84,6 +92,7 @@ export default function MembersPage() {
       role: member.role,
       bio: member.bio,
       instagram_url: member.instagram_url,
+      x_url: member.x_url,
       avatar_url: member.avatar_url,
       is_active: member.is_active,
     })
@@ -94,6 +103,23 @@ export default function MembersPage() {
     setShowForm(false)
     setEditingId(null)
     setForm(emptyForm)
+  }
+
+  const handleAvatarFileChange = (file: File | null) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('画像ファイルを選択してください')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result
+      if (typeof dataUrl === 'string') {
+        setForm((prev) => ({ ...prev, avatar_url: dataUrl }))
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -196,6 +222,43 @@ export default function MembersPage() {
                   placeholder="https://www.instagram.com/..."
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  X URL
+                </label>
+                <input
+                  type="url"
+                  value={form.x_url}
+                  onChange={(e) => setForm({ ...form, x_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+                  placeholder="https://x.com/..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">顔写真</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleAvatarFileChange(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm text-gray-700 file:mr-3 file:px-3 file:py-1.5 file:border file:border-gray-300 file:rounded-lg file:bg-white file:cursor-pointer"
+                />
+                {form.avatar_url && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <img
+                      src={form.avatar_url}
+                      alt="顔写真プレビュー"
+                      className="w-14 h-14 rounded-full object-cover border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, avatar_url: '' })}
+                      className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    >
+                      画像を削除
+                    </button>
+                  </div>
+                )}
+              </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -244,9 +307,17 @@ export default function MembersPage() {
                 member.is_active ? 'border-gray-200' : 'border-gray-200 opacity-60'
               }`}
             >
-              <span className="w-14 h-14 rounded-full bg-mirai-100 flex items-center justify-center text-xl font-bold text-mirai-700 shrink-0">
-                {member.name.charAt(0)}
-              </span>
+              {member.avatar_url ? (
+                <img
+                  src={member.avatar_url}
+                  alt={`${member.name}の顔写真`}
+                  className="w-14 h-14 rounded-full object-cover border border-gray-200 shrink-0"
+                />
+              ) : (
+                <span className="w-14 h-14 rounded-full bg-mirai-100 flex items-center justify-center text-xl font-bold text-mirai-700 shrink-0">
+                  {member.name.charAt(0)}
+                </span>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -272,6 +343,16 @@ export default function MembersPage() {
                     className="text-sm text-mirai-600 hover:text-mirai-800 mt-1 inline-block"
                   >
                     Instagram
+                  </a>
+                )}
+                {member.x_url && (
+                  <a
+                    href={member.x_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-sky-600 hover:text-sky-800 mt-1 inline-block ml-3"
+                  >
+                    X
                   </a>
                 )}
                 <div className="flex gap-2 mt-3">
