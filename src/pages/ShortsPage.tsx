@@ -44,6 +44,16 @@ function isShortTag(tag: Agenda): boolean {
   return normalizedName.includes('ショート') || normalizedName.includes('short')
 }
 
+function isWeeklyTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('週報') || normalizedName.includes('weekly')
+}
+
+function isRelatedTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('関連動画') || normalizedName.includes('related')
+}
+
 export default function ShortsPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [members, setMembers] = useState<Member[]>([])
@@ -79,19 +89,39 @@ export default function ShortsPage() {
 
   const shortTags = useMemo(() => agenda.filter(isShortTag), [agenda])
   const shortTagIds = useMemo(() => new Set(shortTags.map((tag) => tag.id)), [shortTags])
+  const weeklyTagIds = useMemo(
+    () => new Set(agenda.filter(isWeeklyTag).map((tag) => tag.id)),
+    [agenda]
+  )
+  const relatedTagIds = useMemo(
+    () => new Set(agenda.filter(isRelatedTag).map((tag) => tag.id)),
+    [agenda]
+  )
+  const categoryTagIds = useMemo(
+    () => new Set([...shortTagIds, ...weeklyTagIds, ...relatedTagIds]),
+    [shortTagIds, weeklyTagIds, relatedTagIds]
+  )
   const shortReports = useMemo(
-    () => reports.filter((report) => report.agenda_ids.some((tagId) => shortTagIds.has(tagId))),
-    [reports, shortTagIds]
+    () =>
+      reports.filter((report) => {
+        const category = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
+          ? 'short'
+          : report.agenda_ids.some((tagId) => relatedTagIds.has(tagId))
+          ? 'related'
+          : 'weekly'
+        return category === 'short'
+      }),
+    [reports, shortTagIds, relatedTagIds]
   )
   const selectableTags = useMemo(() => {
     const tagIds = new Set<string>()
     shortReports.forEach((report) => {
       report.agenda_ids.forEach((tagId) => {
-        if (!shortTagIds.has(tagId)) tagIds.add(tagId)
+        if (!categoryTagIds.has(tagId)) tagIds.add(tagId)
       })
     })
     return agenda.filter((tag) => tagIds.has(tag.id))
-  }, [agenda, shortReports, shortTagIds])
+  }, [agenda, shortReports, categoryTagIds])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -103,7 +133,7 @@ export default function ShortsPage() {
     const matchesMember = !activeMemberId || report.member_ids.includes(activeMemberId)
     if (!matchesMember) return false
 
-    const matchesTag = !activeTagId || (report.agenda_ids.includes(activeTagId) && !shortTagIds.has(activeTagId))
+    const matchesTag = !activeTagId || report.agenda_ids.includes(activeTagId)
     if (!matchesTag) return false
 
     if (!normalizedSearch) return true
@@ -211,17 +241,11 @@ export default function ShortsPage() {
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} onRetry={loadData} />}
 
-      {!loading && !error && shortTags.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          「ショート」または「short」を含むタグを作成すると、ここに表示されます
-        </div>
-      )}
-
-      {!loading && !error && shortTags.length > 0 && filteredReports.length === 0 && (
+      {!loading && !error && filteredReports.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           {search || activeTagId || activeMemberId
             ? '検索結果がありません'
-            : 'ショート対象の週報がまだ登録されていません'}
+            : 'ショートの投稿がまだ登録されていません'}
         </div>
       )}
 
@@ -230,7 +254,7 @@ export default function ShortsPage() {
           {filteredReports.map((report) => {
             const reportMembers = resolveMembers(report.member_ids, members)
             const reportTags = resolveAgenda(report.agenda_ids, agenda).filter(
-              (tag) => !shortTagIds.has(tag.id)
+              (tag) => !categoryTagIds.has(tag.id)
             )
             const thumbnail = getYouTubeThumbnail(report.youtube_url)
 

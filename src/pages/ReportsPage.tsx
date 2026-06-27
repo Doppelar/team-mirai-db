@@ -87,7 +87,7 @@ export default function ReportsPage() {
       .map((tag) => tag.id)
     return new Set(ids)
   }, [agenda])
-  const weeklyTagIds = useMemo(() => {
+  const weeklyCategoryTagIds = useMemo(() => {
     const ids = agenda
       .filter((tag) => {
         const normalizedName = tag.name.toLowerCase()
@@ -96,20 +96,32 @@ export default function ReportsPage() {
       .map((tag) => tag.id)
     return new Set(ids)
   }, [agenda])
+  const relatedCategoryTagIds = useMemo(() => {
+    const ids = agenda
+      .filter((tag) => {
+        const normalizedName = tag.name.toLowerCase()
+        return normalizedName.includes('関連動画') || normalizedName.includes('related')
+      })
+      .map((tag) => tag.id)
+    return new Set(ids)
+  }, [agenda])
+  const categoryTagIds = useMemo(
+    () => new Set([...shortTagIds, ...weeklyCategoryTagIds, ...relatedCategoryTagIds]),
+    [shortTagIds, weeklyCategoryTagIds, relatedCategoryTagIds]
+  )
   const nonShortAgenda = useMemo(
-    () => agenda.filter((tag) => !shortTagIds.has(tag.id) && !weeklyTagIds.has(tag.id)),
-    [agenda, shortTagIds, weeklyTagIds]
+    () => agenda.filter((tag) => !categoryTagIds.has(tag.id)),
+    [agenda, categoryTagIds]
   )
 
   const normalizedSearch = search.trim().toLowerCase()
   const filteredReports = reports.filter((report) => {
-    const hasShortTag = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
-    if (hasShortTag) return false
-
-    if (weeklyTagIds.size > 0) {
-      const hasWeeklyTag = report.agenda_ids.some((tagId) => weeklyTagIds.has(tagId))
-      if (!hasWeeklyTag) return false
-    }
+    const category = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
+      ? 'short'
+      : report.agenda_ids.some((tagId) => relatedCategoryTagIds.has(tagId))
+      ? 'related'
+      : 'weekly'
+    if (category !== 'weekly') return false
 
     const matchesMember = !activeMemberId || report.member_ids.includes(activeMemberId)
     if (!matchesMember) return false
@@ -267,9 +279,7 @@ export default function ReportsPage() {
 
       {!loading && !error && sortedReports.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          {weeklyTagIds.size === 0
-            ? '「週報」タグを作成すると週報一覧に表示されます'
-            : search || activeTagId || activeMemberId
+          {search || activeTagId || activeMemberId
             ? '検索結果がありません'
             : '週報がまだ登録されていません'}
         </div>

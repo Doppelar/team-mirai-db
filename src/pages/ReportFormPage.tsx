@@ -12,6 +12,8 @@ import {
 } from '../lib/supabase'
 import type { Member, Agenda } from '../types/database'
 
+type ReportCategory = 'weekly' | 'short' | 'related'
+
 function stringifyError(error: unknown): string {
   if (error instanceof Error) {
     return JSON.stringify(
@@ -35,9 +37,51 @@ function stringifyError(error: unknown): string {
   }
 }
 
-function isWeeklyTag(tag: Agenda): boolean {
+function isWeeklyCategoryTag(tag: Agenda): boolean {
   const normalizedName = tag.name.toLowerCase()
   return normalizedName.includes('週報') || normalizedName.includes('weekly')
+}
+
+function isShortCategoryTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('ショート') || normalizedName.includes('short')
+}
+
+function isRelatedCategoryTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('関連動画') || normalizedName.includes('related')
+}
+
+function isCategoryTag(tag: Agenda): boolean {
+  return isWeeklyCategoryTag(tag) || isShortCategoryTag(tag) || isRelatedCategoryTag(tag)
+}
+
+const CATEGORY_TAG_SEEDS: Array<{
+  category: ReportCategory
+  name: string
+  color: string
+  description: string
+}> = [
+  { category: 'weekly', name: '週報', color: '#2563EB', description: '週報用の分類タグ' },
+  { category: 'short', name: 'ショート', color: '#7C3AED', description: 'ショート動画用の分類タグ' },
+  { category: 'related', name: '関連動画', color: '#059669', description: '関連動画用の分類タグ' },
+]
+
+function detectCategoryFromReport(report: { agenda_ids: string[] }, tags: Agenda[]): ReportCategory {
+  const tagMap = new Map(tags.map((tag) => [tag.id, tag]))
+  const hasShort = report.agenda_ids.some((id) => {
+    const tag = tagMap.get(id)
+    return tag ? isShortCategoryTag(tag) : false
+  })
+  if (hasShort) return 'short'
+
+  const hasRelated = report.agenda_ids.some((id) => {
+    const tag = tagMap.get(id)
+    return tag ? isRelatedCategoryTag(tag) : false
+  })
+  if (hasRelated) return 'related'
+
+  return 'weekly'
 }
 
 export default function ReportFormPage() {
@@ -49,6 +93,7 @@ export default function ReportFormPage() {
   const [reportDate, setReportDate] = useState('')
   const [content, setContent] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [category, setCategory] = useState<ReportCategory>('weekly')
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
   const [selectedAgendaIds, setSelectedAgendaIds] = useState<string[]>([])
 
@@ -67,20 +112,25 @@ export default function ReportFormPage() {
         ])
         setMembers(membersData)
         let agendaData = initialAgendaData
-        let weeklyTag = agendaData.find(isWeeklyTag)
+        const missingCategorySeeds = CATEGORY_TAG_SEEDS.filter(({ category }) => {
+          if (category === 'weekly') return !agendaData.some(isWeeklyCategoryTag)
+          if (category === 'short') return !agendaData.some(isShortCategoryTag)
+          return !agendaData.some(isRelatedCategoryTag)
+        })
 
-        if (!weeklyTag) {
-          try {
-            await createAgenda({
-              name: '週報',
-              color: '#2563EB',
-              description: '週報用の分類タグ',
-            })
-            agendaData = await fetchAgenda()
-            weeklyTag = agendaData.find(isWeeklyTag)
-          } catch (createError) {
-            console.error('Failed to auto-create weekly tag', createError)
+        if (missingCategorySeeds.length > 0) {
+          for (const seed of missingCategorySeeds) {
+            try {
+              await createAgenda({
+                name: seed.name,
+                color: seed.color,
+                description: seed.description,
+              })
+            } catch (createError) {
+              console.error(`Failed to auto-create category tag: ${seed.name}`, createError)
+            }
           }
+          agendaData = await fetchAgenda()
         }
 
         setAgenda(agendaData)
@@ -91,18 +141,16 @@ export default function ReportFormPage() {
           setReportDate(report.report_date)
           setContent(report.content)
           setYoutubeUrl(report.youtube_url)
+          setCategory(detectCategoryFromReport(report, agendaData))
           setSelectedMemberIds(report.member_ids)
-          const nextAgendaIds = weeklyTag
-            ? Array.from(new Set([...report.agenda_ids, weeklyTag.id]))
-            : report.agenda_ids
+          const nextAgendaIds = report.agenda_ids.filter((agendaId) => {
+            const tag = agendaData.find((item) => item.id === agendaId)
+            return tag ? !isCategoryTag(tag) : true
+          })
           setSelectedAgendaIds(nextAgendaIds)
         } else {
           setReportDate(new Date().toISOString().split('T')[0])
-          if (weeklyTag) {
-            setSelectedAgendaIds((prev) =>
-              prev.includes(weeklyTag.id) ? prev : [...prev, weeklyTag.id]
-            )
-          }
+          setCategory('weekly')
         }
       } catch (e) {
         setError(stringifyError(e))
@@ -132,10 +180,18 @@ export default function ReportFormPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const weeklyTag = agenda.find(isWeeklyTag)
-      const agendaIdsWithWeekly = weeklyTag
-        ? Array.from(new Set([...selectedAgendaIds, weeklyTag.id]))
-        : selectedAgendaIds
+      const selectedCategoryTag =
+        category === 'short'
+          ? agenda.find(isShortCategoryTag)
+          : category === 'related'
+          ? agenda.find(isRelatedCategoryTag)
+          : agenda.find(isWeeklyCategoryTag)
+
+      if (!selectedCategoryTag) {
+        throw new Error('分類タグの取得に失敗しました。タグ管理でカテゴリタグを確認してください。')
+      }
+
+      const agendaIdsWithCategory = Array.from(new Set([...selectedAgendaIds, selectedCategoryTag.id]))
 
       const payload = {
         title: title.trim(),
@@ -143,7 +199,7 @@ export default function ReportFormPage() {
         content: content.trim(),
         youtube_url: youtubeUrl.trim(),
         member_ids: selectedMemberIds,
-        agenda_ids: agendaIdsWithWeekly,
+        agenda_ids: agendaIdsWithCategory,
       }
 
       if (isEdit && id) {
@@ -173,9 +229,7 @@ export default function ReportFormPage() {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        {isEdit ? '週報を編集' : '週報を登録'}
-      </h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{isEdit ? '投稿を編集' : '投稿を登録'}</h1>
 
       {error && (
         <div className="mb-4">
@@ -229,7 +283,24 @@ export default function ReportFormPage() {
         </div>
 
         <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+            分類 <span className="text-red-500">*</span>
+          </label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as ReportCategory)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-mirai-500"
+          >
+            <option value="weekly">週報</option>
+            <option value="short">ショート</option>
+            <option value="related">関連動画</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
             概要
           </label>
           <textarea
@@ -286,7 +357,7 @@ export default function ReportFormPage() {
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {agenda.map((tag) => (
+              {agenda.filter((tag) => !isCategoryTag(tag)).map((tag) => (
                 <label
                   key={tag.id}
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer transition-colors text-sm ${

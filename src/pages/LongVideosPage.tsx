@@ -44,6 +44,16 @@ function isShortTag(tag: Agenda): boolean {
   return normalizedName.includes('ショート') || normalizedName.includes('short')
 }
 
+function isWeeklyTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('週報') || normalizedName.includes('weekly')
+}
+
+function isRelatedTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('関連動画') || normalizedName.includes('related')
+}
+
 export default function LongVideosPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [members, setMembers] = useState<Member[]>([])
@@ -81,25 +91,43 @@ export default function LongVideosPage() {
     () => new Set(agenda.filter(isShortTag).map((tag) => tag.id)),
     [agenda]
   )
-  const longVideoReports = useMemo(
+  const weeklyTagIds = useMemo(
+    () => new Set(agenda.filter(isWeeklyTag).map((tag) => tag.id)),
+    [agenda]
+  )
+  const relatedTagIds = useMemo(
+    () => new Set(agenda.filter(isRelatedTag).map((tag) => tag.id)),
+    [agenda]
+  )
+  const categoryTagIds = useMemo(
+    () => new Set([...shortTagIds, ...weeklyTagIds, ...relatedTagIds]),
+    [shortTagIds, weeklyTagIds, relatedTagIds]
+  )
+  const relatedVideoReports = useMemo(
     () =>
       reports.filter(
-        (report) =>
-          Boolean(report.youtube_url?.trim()) &&
-          !report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
+        (report) => {
+          if (!report.youtube_url?.trim()) return false
+          const category = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
+            ? 'short'
+            : report.agenda_ids.some((tagId) => relatedTagIds.has(tagId))
+            ? 'related'
+            : 'weekly'
+          return category === 'related'
+        }
       ),
-    [reports, shortTagIds]
+    [reports, shortTagIds, relatedTagIds]
   )
 
   const selectableTags = useMemo(() => {
     const tagIds = new Set<string>()
-    longVideoReports.forEach((report) => {
+    relatedVideoReports.forEach((report) => {
       report.agenda_ids.forEach((tagId) => {
-        if (!shortTagIds.has(tagId)) tagIds.add(tagId)
+        if (!categoryTagIds.has(tagId)) tagIds.add(tagId)
       })
     })
     return agenda.filter((tag) => tagIds.has(tag.id))
-  }, [agenda, longVideoReports, shortTagIds])
+  }, [agenda, relatedVideoReports, categoryTagIds])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -107,7 +135,7 @@ export default function LongVideosPage() {
   }
 
   const normalizedSearch = search.trim().toLowerCase()
-  const filteredReports = longVideoReports.filter((report) => {
+  const filteredReports = relatedVideoReports.filter((report) => {
     const matchesMember = !activeMemberId || report.member_ids.includes(activeMemberId)
     if (!matchesMember) return false
 
@@ -133,7 +161,7 @@ export default function LongVideosPage() {
       <ConfigWarning show={!isSupabaseConfigured} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">ロング動画（関連動画）</h1>
+        <h1 className="text-2xl font-bold text-gray-900">関連動画一覧</h1>
         <Link
           to="/reports/new"
           className="inline-flex items-center justify-center px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 transition-colors font-medium text-sm"
@@ -223,11 +251,11 @@ export default function LongVideosPage() {
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} onRetry={loadData} />}
 
-      {!loading && !error && longVideoReports.length === 0 && (
-        <div className="text-center py-12 text-gray-500">ロング動画の週報がまだ登録されていません</div>
+      {!loading && !error && relatedVideoReports.length === 0 && (
+        <div className="text-center py-12 text-gray-500">関連動画の投稿がまだ登録されていません</div>
       )}
 
-      {!loading && !error && longVideoReports.length > 0 && sortedReports.length === 0 && (
+      {!loading && !error && relatedVideoReports.length > 0 && sortedReports.length === 0 && (
         <div className="text-center py-12 text-gray-500">検索結果がありません</div>
       )}
 
@@ -236,7 +264,7 @@ export default function LongVideosPage() {
           {sortedReports.map((report) => {
             const reportMembers = resolveMembers(report.member_ids, members)
             const reportTags = resolveAgenda(report.agenda_ids, agenda).filter(
-              (tag) => !shortTagIds.has(tag.id)
+              (tag) => !categoryTagIds.has(tag.id)
             )
             const thumbnail = getYouTubeThumbnail(report.youtube_url)
 

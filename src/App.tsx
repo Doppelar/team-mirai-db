@@ -16,6 +16,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<ReportsPage />} />
           <Route path="shorts" element={<ShortsPage />} />
+          <Route path="related-videos" element={<LongVideosPage />} />
           <Route path="long-videos" element={<LongVideosPage />} />
           <Route path="reports/new" element={<ReportFormPage />} />
           <Route path="reports/:id" element={<ReportDetailPage />} />
