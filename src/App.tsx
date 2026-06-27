@@ -6,6 +6,7 @@ import ReportFormPage from './pages/ReportFormPage'
 import MembersPage from './pages/MembersPage'
 import AgendaPage from './pages/AgendaPage'
 import ShortsPage from './pages/ShortsPage'
+import LongVideosPage from './pages/LongVideosPage'
 import LinksPage from './pages/LinksPage'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<ReportsPage />} />
           <Route path="shorts" element={<ShortsPage />} />
+          <Route path="long-videos" element={<LongVideosPage />} />
           <Route path="reports/new" element={<ReportFormPage />} />
           <Route path="reports/:id" element={<ReportDetailPage />} />
           <Route path="reports/:id/edit" element={<ReportFormPage />} />

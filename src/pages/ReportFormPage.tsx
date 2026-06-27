@@ -8,6 +8,7 @@ import {
   fetchAgenda,
   createReport,
   updateReport,
+  createAgenda,
 } from '../lib/supabase'
 import type { Member, Agenda } from '../types/database'
 
@@ -34,6 +35,11 @@ function stringifyError(error: unknown): string {
   }
 }
 
+function isWeeklyTag(tag: Agenda): boolean {
+  const normalizedName = tag.name.toLowerCase()
+  return normalizedName.includes('週報') || normalizedName.includes('weekly')
+}
+
 export default function ReportFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
@@ -55,11 +61,28 @@ export default function ReportFormPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [membersData, agendaData] = await Promise.all([
+        const [membersData, initialAgendaData] = await Promise.all([
           fetchMembers(true),
           fetchAgenda(),
         ])
         setMembers(membersData)
+        let agendaData = initialAgendaData
+        let weeklyTag = agendaData.find(isWeeklyTag)
+
+        if (!weeklyTag) {
+          try {
+            await createAgenda({
+              name: '週報',
+              color: '#2563EB',
+              description: '週報用の分類タグ',
+            })
+            agendaData = await fetchAgenda()
+            weeklyTag = agendaData.find(isWeeklyTag)
+          } catch (createError) {
+            console.error('Failed to auto-create weekly tag', createError)
+          }
+        }
+
         setAgenda(agendaData)
 
         if (id) {
@@ -69,9 +92,17 @@ export default function ReportFormPage() {
           setContent(report.content)
           setYoutubeUrl(report.youtube_url)
           setSelectedMemberIds(report.member_ids)
-          setSelectedAgendaIds(report.agenda_ids)
+          const nextAgendaIds = weeklyTag
+            ? Array.from(new Set([...report.agenda_ids, weeklyTag.id]))
+            : report.agenda_ids
+          setSelectedAgendaIds(nextAgendaIds)
         } else {
           setReportDate(new Date().toISOString().split('T')[0])
+          if (weeklyTag) {
+            setSelectedAgendaIds((prev) =>
+              prev.includes(weeklyTag.id) ? prev : [...prev, weeklyTag.id]
+            )
+          }
         }
       } catch (e) {
         setError(stringifyError(e))
@@ -101,13 +132,18 @@ export default function ReportFormPage() {
     setSubmitting(true)
     setError(null)
     try {
+      const weeklyTag = agenda.find(isWeeklyTag)
+      const agendaIdsWithWeekly = weeklyTag
+        ? Array.from(new Set([...selectedAgendaIds, weeklyTag.id]))
+        : selectedAgendaIds
+
       const payload = {
         title: title.trim(),
         report_date: reportDate,
         content: content.trim(),
         youtube_url: youtubeUrl.trim(),
         member_ids: selectedMemberIds,
-        agenda_ids: selectedAgendaIds,
+        agenda_ids: agendaIdsWithWeekly,
       }
 
       if (isEdit && id) {

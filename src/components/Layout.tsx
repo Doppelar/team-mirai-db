@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 const navItems = [
   { to: '/', label: '週報一覧' },
   { to: '/shorts', label: 'ショート一覧' },
+  { to: '/long-videos', label: 'ロング動画' },
   { to: '/reports/new', label: '週報登録' },
   { to: '/members', label: '出演者' },
   { to: '/agenda', label: 'タグ管理' },
