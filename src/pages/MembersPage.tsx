@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
@@ -356,6 +357,12 @@ export default function MembersPage() {
                   </a>
                 )}
                 <div className="flex gap-2 mt-3">
+                  <Link
+                    to={`/members/${member.id}`}
+                    className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    活動ページ
+                  </Link>
                   <button
                     onClick={() => openEdit(member)}
                     className="text-sm text-mirai-600 hover:text-mirai-800 font-medium"

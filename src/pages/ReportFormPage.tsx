@@ -93,6 +93,7 @@ export default function ReportFormPage() {
   const [reportDate, setReportDate] = useState('')
   const [content, setContent] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [videoDuration, setVideoDuration] = useState('')
   const [category, setCategory] = useState<ReportCategory>('weekly')
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
   const [selectedAgendaIds, setSelectedAgendaIds] = useState<string[]>([])
@@ -141,6 +142,7 @@ export default function ReportFormPage() {
           setReportDate(report.report_date)
           setContent(report.content)
           setYoutubeUrl(report.youtube_url)
+          setVideoDuration(report.video_duration)
           setCategory(detectCategoryFromReport(report, agendaData))
           setSelectedMemberIds(report.member_ids)
           const nextAgendaIds = report.agenda_ids.filter((agendaId) => {
@@ -150,6 +152,7 @@ export default function ReportFormPage() {
           setSelectedAgendaIds(nextAgendaIds)
         } else {
           setReportDate(new Date().toISOString().split('T')[0])
+          setVideoDuration('')
           setCategory('weekly')
         }
       } catch (e) {
@@ -198,6 +201,7 @@ export default function ReportFormPage() {
         report_date: reportDate,
         content: content.trim(),
         youtube_url: youtubeUrl.trim(),
+        video_duration: videoDuration.trim(),
         member_ids: selectedMemberIds,
         agenda_ids: agendaIdsWithCategory,
       }
@@ -222,7 +226,7 @@ export default function ReportFormPage() {
     <div>
       <div className="mb-4">
         <Link
-          to={isEdit && id ? `/reports/${id}` : '/'}
+          to={isEdit && id ? `/reports/${id}` : '/weekly-reports'}
           className="text-sm text-mirai-600 hover:text-mirai-800"
         >
           ← 戻る
@@ -279,6 +283,20 @@ export default function ReportFormPage() {
             onChange={(e) => setYoutubeUrl(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
             placeholder="https://www.youtube.com/watch?v=..."
+          />
+        </div>
+
+        <div>
+          <label htmlFor="videoDuration" className="block text-sm font-medium text-gray-700 mb-1">
+            動画時間
+          </label>
+          <input
+            id="videoDuration"
+            type="text"
+            value={videoDuration}
+            onChange={(e) => setVideoDuration(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+            placeholder="例: 1:23:45 / 45:10 / ライブ配信中"
           />
         </div>
 
@@ -392,7 +410,7 @@ export default function ReportFormPage() {
             {submitting ? '保存中...' : isEdit ? '更新する' : '登録する'}
           </button>
           <Link
-            to={isEdit && id ? `/reports/${id}` : '/'}
+            to={isEdit && id ? `/reports/${id}` : '/weekly-reports'}
             className="px-6 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium text-gray-700"
           >
             キャンセル

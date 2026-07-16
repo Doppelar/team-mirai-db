@@ -25,6 +25,7 @@ export interface Report {
   report_date: string
   content: string
   youtube_url: string
+  video_duration: string
   member_ids: string[]
   agenda_ids: string[]
   created_at: string

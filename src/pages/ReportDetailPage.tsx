@@ -75,7 +75,7 @@ export default function ReportDetailPage() {
     setDeleting(true)
     try {
       await deleteReport(id)
-      navigate('/')
+      navigate('/weekly-reports')
     } catch (e) {
       console.error('Failed to delete report', e)
       setError(stringifyError(e))
@@ -99,7 +99,7 @@ export default function ReportDetailPage() {
   return (
     <div>
       <div className="mb-4">
-        <Link to="/" className="text-sm text-mirai-600 hover:text-mirai-800">
+        <Link to="/weekly-reports" className="text-sm text-mirai-600 hover:text-mirai-800">
           ← 週報一覧に戻る
         </Link>
       </div>
@@ -114,8 +114,24 @@ export default function ReportDetailPage() {
         <div className="p-4 sm:p-6 space-y-4">
           <div>
             <time className="text-sm text-gray-500">期間: {formatDate(report.report_date)}</time>
+            {report.video_duration && (
+              <p className="text-sm text-gray-500 mt-1">動画時間: {report.video_duration}</p>
+            )}
             <h1 className="text-2xl font-bold text-gray-900 mt-1">{report.title}</h1>
           </div>
+
+          {report.youtube_url && (
+            <div>
+              <a
+                href={report.youtube_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm bg-mirai-50 text-mirai-700 hover:bg-mirai-100"
+              >
+                YouTubeで開く
+              </a>
+            </div>
+          )}
 
           {reportTags.length > 0 && (
             <div className="flex flex-wrap gap-2">

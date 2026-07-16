@@ -24,6 +24,14 @@ const linkItems = [
     accent: 'from-fuchsia-600 to-pink-700',
   },
   {
+    title: 'チームみらい 公式YouTubeチャンネル',
+    subtitle: '公式動画',
+    description:
+      '週次報告や活動動画、最新コンテンツをまとめて視聴できます。',
+    url: 'https://www.youtube.com/@team_mirai_jp',
+    accent: 'from-red-600 to-rose-700',
+  },
+  {
     title: '国会中継（衆議院インターネット審議中継）',
     subtitle: 'ライブ・アーカイブ視聴',
     description:

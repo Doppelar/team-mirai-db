@@ -56,6 +56,7 @@ function normalizeReport(row: Partial<Report>): Report {
     report_date: row.report_date ?? '',
     content: row.content ?? '',
     youtube_url: row.youtube_url ?? '',
+    video_duration: row.video_duration ?? '',
     member_ids: Array.isArray(row.member_ids) ? row.member_ids : [],
     agenda_ids: Array.isArray(row.agenda_ids) ? row.agenda_ids : [],
     created_at: row.created_at ?? '',
@@ -131,6 +132,39 @@ async function updateAgendaWithFallback(id: string, payload: Record<string, unkn
 
 // --- Reports ---
 
+async function insertReportWithFallback(payload: Record<string, unknown>) {
+  let currentPayload = { ...payload }
+  for (let i = 0; i < 5; i += 1) {
+    const { data, error } = await supabase.from('reports').insert(currentPayload).select().single()
+    if (!error) return normalizeReport(data as Partial<Report>)
+    if (isSingleResultZeroRowsError(error)) return normalizeReport(payload as Partial<Report>)
+
+    const missingColumn = getMissingColumnFromError(error)
+    if (!missingColumn || !(missingColumn in currentPayload)) throw error
+    delete currentPayload[missingColumn]
+  }
+  throw new Error('Report insert failed after fallback retries')
+}
+
+async function updateReportWithFallback(id: string, payload: Record<string, unknown>) {
+  let currentPayload = { ...payload }
+  for (let i = 0; i < 5; i += 1) {
+    const { data, error } = await supabase
+      .from('reports')
+      .update(currentPayload)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error) return normalizeReport(data as Partial<Report>)
+    if (isSingleResultZeroRowsError(error)) return normalizeReport({ id, ...payload })
+
+    const missingColumn = getMissingColumnFromError(error)
+    if (!missingColumn || !(missingColumn in currentPayload)) throw error
+    delete currentPayload[missingColumn]
+  }
+  throw new Error('Report update failed after fallback retries')
+}
+
 export async function fetchReports() {
   const query = supabase
     .from('reports')
@@ -163,31 +197,11 @@ export async function createReport(report: Omit<Report, 'id' | 'created_at' | 'u
     id: crypto.randomUUID(),
     ...report,
   }
-
-  const { data, error } = await supabase
-    .from('reports')
-    .insert(reportWithId)
-    .select()
-    .single()
-  if (error) {
-    if (isSingleResultZeroRowsError(error)) return normalizeReport(reportWithId)
-    throw error
-  }
-  return normalizeReport(data as Partial<Report>)
+  return insertReportWithFallback(reportWithId as Record<string, unknown>)
 }
 
 export async function updateReport(id: string, report: Partial<Report>) {
-  const { data, error } = await supabase
-    .from('reports')
-    .update(report)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) {
-    if (isSingleResultZeroRowsError(error)) return normalizeReport({ id, ...report })
-    throw error
-  }
-  return normalizeReport(data as Partial<Report>)
+  return updateReportWithFallback(id, report as Record<string, unknown>)
 }
 
 export async function deleteReport(id: string) {

@@ -282,6 +282,9 @@ export default function LongVideosPage() {
                 )}
                 <div className="p-4 flex-1 flex flex-col gap-2">
                   <time className="text-xs text-gray-500">期間: {formatDate(report.report_date)}</time>
+                  {report.video_duration && (
+                    <p className="text-xs text-gray-500">動画時間: {report.video_duration}</p>
+                  )}
                   <h2 className="font-semibold text-gray-900 line-clamp-2">{report.title}</h2>
                   {report.content && <p className="text-sm text-gray-600 line-clamp-2">{report.content}</p>}
                   {reportTags.length > 0 && (

@@ -1,14 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { appNavItems } from '../lib/navigation'
 
-const navItems = [
-  { to: '/', label: '週報一覧' },
-  { to: '/shorts', label: 'ショート一覧' },
-  { to: '/related-videos', label: '関連動画' },
-  { to: '/reports/new', label: '週報登録' },
-  { to: '/members', label: '出演者' },
-  { to: '/agenda', label: 'タグ管理' },
-  { to: '/links', label: 'リンク集' },
-]
+const navItems = appNavItems.filter((item) => item.showInHeader !== false)
 
 export default function Layout() {
   const location = useLocation()

@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS reports (
   report_date DATE NOT NULL,
   content TEXT DEFAULT '',
   youtube_url TEXT DEFAULT '',
+  video_duration TEXT DEFAULT '',
   member_ids UUID[] DEFAULT '{}',
   agenda_ids UUID[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),

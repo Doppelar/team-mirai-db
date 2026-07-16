@@ -293,20 +293,22 @@ export default function ReportsPage() {
             const thumbnail = getYouTubeThumbnail(report.youtube_url)
 
             return (
-              <Link
+              <article
                 key={report.id}
-                to={`/reports/${report.id}`}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
               >
-                {thumbnail && (
-                  <img
-                    src={thumbnail}
-                    alt=""
-                    className="w-full aspect-video object-cover"
-                  />
+                {thumbnail ? (
+                  <img src={thumbnail} alt="" className="w-full aspect-video object-cover" />
+                ) : (
+                  <div className="w-full aspect-video bg-gray-100 flex items-center justify-center text-sm text-gray-500">
+                    サムネイル未取得
+                  </div>
                 )}
                 <div className="p-4 flex-1 flex flex-col gap-2">
                   <time className="text-xs text-gray-500">期間: {formatDate(report.report_date)}</time>
+                  {report.video_duration && (
+                    <p className="text-xs text-gray-500">動画時間: {report.video_duration}</p>
+                  )}
                   <h2 className="font-semibold text-gray-900 line-clamp-2">{report.title}</h2>
                   {report.content && (
                     <p className="text-sm text-gray-600 line-clamp-2">{report.content}</p>
@@ -323,8 +325,26 @@ export default function ReportsPage() {
                       登壇者: {reportMembers.map((m) => m.name).join('、')}
                     </p>
                   )}
+                  <div className="flex items-center gap-3 pt-2">
+                    {report.youtube_url && (
+                      <a
+                        href={report.youtube_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-mirai-600 hover:text-mirai-800 underline"
+                      >
+                        動画を見る
+                      </a>
+                    )}
+                    <Link
+                      to={`/reports/${report.id}`}
+                      className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    >
+                      詳細を見る
+                    </Link>
+                  </div>
                 </div>
-              </Link>
+              </article>
             )
           })}
         </div>
