@@ -298,7 +298,9 @@ export default function ReportsPage() {
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
               >
                 {thumbnail ? (
-                  <img src={thumbnail} alt="" className="w-full aspect-video object-cover" />
+                  <a href={report.youtube_url} target="_blank" rel="noreferrer" className="block">
+                    <img src={thumbnail} alt="" className="w-full aspect-video object-cover" />
+                  </a>
                 ) : (
                   <div className="w-full aspect-video bg-gray-100 flex items-center justify-center text-sm text-gray-500">
                     サムネイル未取得

@@ -8,6 +8,11 @@ export type AppNavItem = {
 export const appNavItems: AppNavItem[] = [
   {
     to: '/',
+    label: 'TOPページ',
+    description: '議員ごとに今月の最新活動と委員会情報を確認できます。',
+  },
+  {
+    to: '/search',
     label: '検索ページ',
     description: 'アプリ全体のページ一覧を説明付きで検索できます。',
   },

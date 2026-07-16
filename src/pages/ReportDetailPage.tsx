@@ -165,6 +165,12 @@ export default function ReportDetailPage() {
                     {member.role && (
                       <span className="text-gray-400 text-xs">({member.role})</span>
                     )}
+                    <Link
+                      to={`/members/${member.id}`}
+                      className="text-gray-600 hover:text-gray-800 text-xs underline"
+                    >
+                      月別活動
+                    </Link>
                     {member.instagram_url && (
                       <a
                         href={member.instagram_url}

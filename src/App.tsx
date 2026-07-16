@@ -11,13 +11,15 @@ import LongVideosPage from './pages/LongVideosPage'
 import LinksPage from './pages/LinksPage'
 import SearchPage from './pages/SearchPage'
 import PartyOverviewPage from './pages/PartyOverviewPage'
+import TopPage from './pages/TopPage'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<SearchPage />} />
+          <Route index element={<TopPage />} />
+          <Route path="search" element={<SearchPage />} />
           <Route path="weekly-reports" element={<ReportsPage />} />
           <Route path="shorts" element={<ShortsPage />} />
           <Route path="related-videos" element={<LongVideosPage />} />

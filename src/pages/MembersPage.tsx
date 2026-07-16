@@ -160,7 +160,12 @@ export default function MembersPage() {
       <ConfigWarning show={!isSupabaseConfigured} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">出演者一覧</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">出演者一覧</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            各カードの「月別活動ページ」から、議員ごとの月次活動に移動できます。
+          </p>
+        </div>
         <button
           onClick={openCreate}
           className="inline-flex items-center justify-center px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 transition-colors font-medium text-sm"
@@ -359,9 +364,9 @@ export default function MembersPage() {
                 <div className="flex gap-2 mt-3">
                   <Link
                     to={`/members/${member.id}`}
-                    className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                    className="text-sm text-gray-700 hover:text-gray-900 font-medium px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200"
                   >
-                    活動ページ
+                    月別活動ページ
                   </Link>
                   <button
                     onClick={() => openEdit(member)}

@@ -37,6 +37,31 @@ CREATE TABLE IF NOT EXISTS reports (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 登壇者ごとの月次活動メモ
+CREATE TABLE IF NOT EXISTS member_monthly_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id UUID NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  activity_month DATE NOT NULL,
+  committee TEXT DEFAULT '',
+  title TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  link_url TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 党全体の功績タイムライン
+CREATE TABLE IF NOT EXISTS party_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  achievement_date DATE NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  summary TEXT NOT NULL DEFAULT '',
+  impact TEXT NOT NULL DEFAULT '',
+  link_url TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 更新日時自動更新トリガー
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
@@ -54,10 +79,20 @@ CREATE TRIGGER reports_updated_at
   BEFORE UPDATE ON reports
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE TRIGGER member_monthly_activities_updated_at
+  BEFORE UPDATE ON member_monthly_activities
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER party_achievements_updated_at
+  BEFORE UPDATE ON party_achievements
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- 全文検索用インデックス
 CREATE INDEX IF NOT EXISTS reports_title_idx ON reports USING gin (to_tsvector('simple', title));
 CREATE INDEX IF NOT EXISTS reports_content_idx ON reports USING gin (to_tsvector('simple', content));
 CREATE INDEX IF NOT EXISTS reports_date_idx ON reports (report_date DESC);
+CREATE INDEX IF NOT EXISTS member_monthly_activities_member_month_idx ON member_monthly_activities (member_id, activity_month DESC);
+CREATE INDEX IF NOT EXISTS party_achievements_date_idx ON party_achievements (achievement_date DESC);
 CREATE INDEX IF NOT EXISTS members_name_idx ON members (name);
 CREATE INDEX IF NOT EXISTS agenda_name_idx ON agenda (name);
 
@@ -65,10 +100,14 @@ CREATE INDEX IF NOT EXISTS agenda_name_idx ON agenda (name);
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agenda ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE member_monthly_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE party_achievements ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "members_all" ON members FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "agenda_all" ON agenda FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "reports_all" ON reports FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "member_monthly_activities_all" ON member_monthly_activities FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "party_achievements_all" ON party_achievements FOR ALL USING (true) WITH CHECK (true);
 
 -- サンプルデータ
 INSERT INTO agenda (name, color, description) VALUES

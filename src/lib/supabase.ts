@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Agenda, Member, Report } from '../types/database'
+import type {
+  Agenda,
+  Member,
+  MemberMonthlyActivity,
+  PartyAchievement,
+  Report,
+} from '../types/database'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -21,6 +27,16 @@ type ColumnMissingError = {
   code?: string
   message?: string
   details?: string | null
+}
+
+function isMissingTableError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const { code, message } = error as ColumnMissingError
+  return (
+    code === '42P01' ||
+    code === 'PGRST205' ||
+    message?.toLowerCase().includes('does not exist') === true
+  )
 }
 
 function getMissingColumnFromError(error: unknown): string | null {
@@ -89,6 +105,35 @@ function normalizeAgenda(row: Partial<Agenda>): Agenda {
   }
 }
 
+function normalizeMemberMonthlyActivity(
+  row: Partial<MemberMonthlyActivity>
+): MemberMonthlyActivity {
+  return {
+    id: row.id ?? '',
+    member_id: row.member_id ?? '',
+    activity_month: row.activity_month ?? '',
+    committee: row.committee ?? '',
+    title: row.title ?? '',
+    content: row.content ?? '',
+    link_url: row.link_url ?? '',
+    created_at: row.created_at ?? '',
+    updated_at: row.updated_at ?? '',
+  }
+}
+
+function normalizePartyAchievement(row: Partial<PartyAchievement>): PartyAchievement {
+  return {
+    id: row.id ?? '',
+    achievement_date: row.achievement_date ?? '',
+    title: row.title ?? '',
+    summary: row.summary ?? '',
+    impact: row.impact ?? '',
+    link_url: row.link_url ?? '',
+    created_at: row.created_at ?? '',
+    updated_at: row.updated_at ?? '',
+  }
+}
+
 async function insertAgendaWithFallback(payload: Record<string, unknown>) {
   let currentPayload = { ...payload }
 
@@ -140,8 +185,12 @@ async function insertReportWithFallback(payload: Record<string, unknown>) {
     if (isSingleResultZeroRowsError(error)) return normalizeReport(payload as Partial<Report>)
 
     const missingColumn = getMissingColumnFromError(error)
-    if (!missingColumn || !(missingColumn in currentPayload)) throw error
-    delete currentPayload[missingColumn]
+    if (missingColumn && missingColumn in currentPayload) {
+      throw new Error(
+        `reportsテーブルに '${missingColumn}' カラムがありません。SQL Editorで列を追加してください。`
+      )
+    }
+    throw error
   }
   throw new Error('Report insert failed after fallback retries')
 }
@@ -159,8 +208,12 @@ async function updateReportWithFallback(id: string, payload: Record<string, unkn
     if (isSingleResultZeroRowsError(error)) return normalizeReport({ id, ...payload })
 
     const missingColumn = getMissingColumnFromError(error)
-    if (!missingColumn || !(missingColumn in currentPayload)) throw error
-    delete currentPayload[missingColumn]
+    if (missingColumn && missingColumn in currentPayload) {
+      throw new Error(
+        `reportsテーブルに '${missingColumn}' カラムがありません。SQL Editorで列を追加してください。`
+      )
+    }
+    throw error
   }
   throw new Error('Report update failed after fallback retries')
 }
@@ -335,6 +388,98 @@ export async function deleteAgenda(id: string) {
   const { data, error } = await supabase.from('agenda').delete().eq('id', id).select('id')
   if (error) throw error
   if (!data || data.length === 0) throw new Error('削除対象のタグが見つかりません')
+}
+
+// --- Member Monthly Activities ---
+
+export async function fetchMemberMonthlyActivities(memberId: string) {
+  const { data, error } = await supabase
+    .from('member_monthly_activities')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('activity_month', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) {
+    if (isMissingTableError(error)) return []
+    throw error
+  }
+  return (data ?? []).map((row) => normalizeMemberMonthlyActivity(row as Partial<MemberMonthlyActivity>))
+}
+
+export async function fetchAllMemberMonthlyActivities() {
+  const { data, error } = await supabase
+    .from('member_monthly_activities')
+    .select('*')
+    .order('activity_month', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) {
+    if (isMissingTableError(error)) return []
+    throw error
+  }
+  return (data ?? []).map((row) =>
+    normalizeMemberMonthlyActivity(row as Partial<MemberMonthlyActivity>)
+  )
+}
+
+export async function createMemberMonthlyActivity(
+  activity: Omit<MemberMonthlyActivity, 'id' | 'created_at' | 'updated_at'>
+) {
+  const { data, error } = await supabase
+    .from('member_monthly_activities')
+    .insert(activity)
+    .select()
+    .single()
+  if (error) throw error
+  return normalizeMemberMonthlyActivity(data as Partial<MemberMonthlyActivity>)
+}
+
+export async function deleteMemberMonthlyActivity(id: string) {
+  if (!id) throw new Error('削除対象の月次活動IDが不正です')
+  const { data, error } = await supabase
+    .from('member_monthly_activities')
+    .delete()
+    .eq('id', id)
+    .select('id')
+  if (error) throw error
+  if (!data || data.length === 0) throw new Error('削除対象の月次活動が見つかりません')
+}
+
+// --- Party Achievements ---
+
+export async function fetchPartyAchievements() {
+  const { data, error } = await supabase
+    .from('party_achievements')
+    .select('*')
+    .order('achievement_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) {
+    if (isMissingTableError(error)) return []
+    throw error
+  }
+  return (data ?? []).map((row) => normalizePartyAchievement(row as Partial<PartyAchievement>))
+}
+
+export async function createPartyAchievement(
+  achievement: Omit<PartyAchievement, 'id' | 'created_at' | 'updated_at'>
+) {
+  const { data, error } = await supabase
+    .from('party_achievements')
+    .insert(achievement)
+    .select()
+    .single()
+  if (error) throw error
+  return normalizePartyAchievement(data as Partial<PartyAchievement>)
+}
+
+export async function deletePartyAchievement(id: string) {
+  if (!id) throw new Error('削除対象の功績IDが不正です')
+  const { data, error } = await supabase
+    .from('party_achievements')
+    .delete()
+    .eq('id', id)
+    .select('id')
+  if (error) throw error
+  if (!data || data.length === 0) throw new Error('削除対象の功績が見つかりません')
 }
 
 // --- Helpers ---
