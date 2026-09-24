@@ -360,7 +360,7 @@ export default function MembersPage() {
         </div>
       )}
 
-      {!loading && !error && filtered.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {filtered.map((member) => (
             <div

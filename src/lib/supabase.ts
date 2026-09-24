@@ -301,12 +301,9 @@ async function insertMemberWithFallback(payload: Record<string, unknown>) {
     if (isSingleResultZeroRowsError(error)) return normalizeMember(payload as Partial<Member>)
 
     const missingColumn = getMissingColumnFromError(error)
-    if (missingColumn && missingColumn in currentPayload) {
-      throw new Error(
-        `membersテーブルに '${missingColumn}' カラムがありません。SQL Editorで列を追加してください。`
-      )
-    }
-    throw error
+    if (!missingColumn || !(missingColumn in currentPayload)) throw error
+
+    delete currentPayload[missingColumn]
   }
 
   throw new Error('Member insert failed after fallback retries')
@@ -327,12 +324,9 @@ async function updateMemberWithFallback(id: string, payload: Record<string, unkn
     }
 
     const missingColumn = getMissingColumnFromError(error)
-    if (missingColumn && missingColumn in currentPayload) {
-      throw new Error(
-        `membersテーブルに '${missingColumn}' カラムがありません。SQL Editorで列を追加してください。`
-      )
-    }
-    throw error
+    if (!missingColumn || !(missingColumn in currentPayload)) throw error
+
+    delete currentPayload[missingColumn]
   }
 
   throw new Error('Member update failed after fallback retries')
