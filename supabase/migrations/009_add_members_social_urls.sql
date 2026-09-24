@@ -1,0 +1,8 @@
+ALTER TABLE public.members
+ADD COLUMN IF NOT EXISTS youtube_url TEXT DEFAULT '';
+
+ALTER TABLE public.members
+ADD COLUMN IF NOT EXISTS threads_url TEXT DEFAULT '';
+
+ALTER TABLE public.members
+ADD COLUMN IF NOT EXISTS tiktok_url TEXT DEFAULT '';

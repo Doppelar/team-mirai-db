@@ -17,8 +17,12 @@ const emptyForm = {
   name: '',
   role: '',
   bio: '',
+  homepage_url: '',
   instagram_url: '',
   x_url: '',
+  youtube_url: '',
+  threads_url: '',
+  tiktok_url: '',
   avatar_url: '',
   is_active: true,
 }
@@ -92,8 +96,12 @@ export default function MembersPage() {
       name: member.name,
       role: member.role,
       bio: member.bio,
+      homepage_url: member.homepage_url,
       instagram_url: member.instagram_url,
       x_url: member.x_url,
+      youtube_url: member.youtube_url,
+      threads_url: member.threads_url,
+      tiktok_url: member.tiktok_url,
       avatar_url: member.avatar_url,
       is_active: member.is_active,
     })
@@ -218,6 +226,18 @@ export default function MembersPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  HP URL
+                </label>
+                <input
+                  type="url"
+                  value={form.homepage_url}
+                  onChange={(e) => setForm({ ...form, homepage_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Instagram URL
                 </label>
                 <input
@@ -238,6 +258,42 @@ export default function MembersPage() {
                   onChange={(e) => setForm({ ...form, x_url: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
                   placeholder="https://x.com/..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  YouTube URL
+                </label>
+                <input
+                  type="url"
+                  value={form.youtube_url}
+                  onChange={(e) => setForm({ ...form, youtube_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+                  placeholder="https://www.youtube.com/@..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Threads URL
+                </label>
+                <input
+                  type="url"
+                  value={form.threads_url}
+                  onChange={(e) => setForm({ ...form, threads_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+                  placeholder="https://www.threads.net/@..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  TikTok URL
+                </label>
+                <input
+                  type="url"
+                  value={form.tiktok_url}
+                  onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
+                  placeholder="https://www.tiktok.com/@..."
                 />
               </div>
               <div>
@@ -341,26 +397,68 @@ export default function MembersPage() {
                 {member.bio && (
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">{member.bio}</p>
                 )}
-                {member.instagram_url && (
-                  <a
-                    href={member.instagram_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-mirai-600 hover:text-mirai-800 mt-1 inline-block"
-                  >
-                    Instagram
-                  </a>
-                )}
-                {member.x_url && (
-                  <a
-                    href={member.x_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-sky-600 hover:text-sky-800 mt-1 inline-block ml-3"
-                  >
-                    X
-                  </a>
-                )}
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                  {member.homepage_url && (
+                    <a
+                      href={member.homepage_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-mirai-700 hover:text-mirai-900"
+                    >
+                      HP
+                    </a>
+                  )}
+                  {member.instagram_url && (
+                    <a
+                      href={member.instagram_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-mirai-600 hover:text-mirai-800"
+                    >
+                      Instagram
+                    </a>
+                  )}
+                  {member.x_url && (
+                    <a
+                      href={member.x_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-sky-600 hover:text-sky-800"
+                    >
+                      X
+                    </a>
+                  )}
+                  {member.youtube_url && (
+                    <a
+                      href={member.youtube_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      YouTube
+                    </a>
+                  )}
+                  {member.threads_url && (
+                    <a
+                      href={member.threads_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-gray-700 hover:text-gray-900"
+                    >
+                      Threads
+                    </a>
+                  )}
+                  {member.tiktok_url && (
+                    <a
+                      href={member.tiktok_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-black hover:text-gray-700"
+                    >
+                      TikTok
+                    </a>
+                  )}
+                </div>
                 <div className="flex gap-2 mt-3">
                   <Link
                     to={`/members/${member.id}`}

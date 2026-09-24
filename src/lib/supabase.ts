@@ -86,8 +86,12 @@ function normalizeMember(row: Partial<Member>): Member {
     name: row.name ?? '',
     role: row.role ?? '',
     bio: row.bio ?? '',
+    homepage_url: row.homepage_url ?? '',
     instagram_url: row.instagram_url ?? '',
     x_url: row.x_url ?? '',
+    youtube_url: row.youtube_url ?? '',
+    threads_url: row.threads_url ?? '',
+    tiktok_url: row.tiktok_url ?? '',
     avatar_url: row.avatar_url ?? '',
     is_active: row.is_active ?? true,
     created_at: row.created_at ?? '',
@@ -444,6 +448,20 @@ export async function deleteMemberMonthlyActivity(id: string) {
   if (!data || data.length === 0) throw new Error('削除対象の月次活動が見つかりません')
 }
 
+export async function updateMemberMonthlyActivity(
+  id: string,
+  activity: Partial<MemberMonthlyActivity>
+) {
+  const { data, error } = await supabase
+    .from('member_monthly_activities')
+    .update(activity)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return normalizeMemberMonthlyActivity(data as Partial<MemberMonthlyActivity>)
+}
+
 // --- Party Achievements ---
 
 export async function fetchPartyAchievements() {
@@ -480,6 +498,17 @@ export async function deletePartyAchievement(id: string) {
     .select('id')
   if (error) throw error
   if (!data || data.length === 0) throw new Error('削除対象の功績が見つかりません')
+}
+
+export async function updatePartyAchievement(id: string, achievement: Partial<PartyAchievement>) {
+  const { data, error } = await supabase
+    .from('party_achievements')
+    .update(achievement)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return normalizePartyAchievement(data as Partial<PartyAchievement>)
 }
 
 // --- Helpers ---

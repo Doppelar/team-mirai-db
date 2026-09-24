@@ -3,8 +3,12 @@ export interface Member {
   name: string
   role: string
   bio: string
+  homepage_url: string
   instagram_url: string
   x_url: string
+  youtube_url: string
+  threads_url: string
+  tiktok_url: string
   avatar_url: string
   is_active: boolean
   created_at: string

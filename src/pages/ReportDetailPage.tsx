@@ -171,6 +171,16 @@ export default function ReportDetailPage() {
                     >
                       月別活動
                     </Link>
+                    {member.homepage_url && (
+                      <a
+                        href={member.homepage_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-mirai-700 hover:text-mirai-900 text-xs"
+                      >
+                        HP
+                      </a>
+                    )}
                     {member.instagram_url && (
                       <a
                         href={member.instagram_url}
@@ -189,6 +199,36 @@ export default function ReportDetailPage() {
                         className="text-sky-600 hover:text-sky-800 text-xs"
                       >
                         X
+                      </a>
+                    )}
+                    {member.youtube_url && (
+                      <a
+                        href={member.youtube_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-red-600 hover:text-red-800 text-xs"
+                      >
+                        YouTube
+                      </a>
+                    )}
+                    {member.threads_url && (
+                      <a
+                        href={member.threads_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-700 hover:text-gray-900 text-xs"
+                      >
+                        Threads
+                      </a>
+                    )}
+                    {member.tiktok_url && (
+                      <a
+                        href={member.tiktok_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-900 hover:text-black text-xs"
+                      >
+                        TikTok
                       </a>
                     )}
                   </span>

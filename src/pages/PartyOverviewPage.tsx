@@ -5,6 +5,7 @@ import {
   createPartyAchievement,
   deletePartyAchievement,
   fetchPartyAchievements,
+  updatePartyAchievement,
 } from '../lib/supabase'
 import type { PartyAchievement } from '../types/database'
 
@@ -27,6 +28,7 @@ export default function PartyOverviewPage() {
   const [formSummary, setFormSummary] = useState('')
   const [formImpact, setFormImpact] = useState('')
   const [formLink, setFormLink] = useState('')
+  const [editingAchievementId, setEditingAchievementId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -45,29 +47,55 @@ export default function PartyOverviewPage() {
     load()
   }, [])
 
+  const resetForm = () => {
+    setEditingAchievementId(null)
+    setFormDate(new Date().toISOString().slice(0, 10))
+    setFormTitle('')
+    setFormSummary('')
+    setFormImpact('')
+    setFormLink('')
+  }
+
   const handleCreateAchievement = async (e: FormEvent) => {
     e.preventDefault()
     if (!formDate || !formTitle.trim()) return
     setSaving(true)
     setError(null)
     try {
-      const created = await createPartyAchievement({
-        achievement_date: formDate,
-        title: formTitle.trim(),
-        summary: formSummary.trim(),
-        impact: formImpact.trim(),
-        link_url: formLink.trim(),
-      })
-      setAchievements((prev) => [created, ...prev])
-      setFormTitle('')
-      setFormSummary('')
-      setFormImpact('')
-      setFormLink('')
+      if (editingAchievementId) {
+        const updated = await updatePartyAchievement(editingAchievementId, {
+          achievement_date: formDate,
+          title: formTitle.trim(),
+          summary: formSummary.trim(),
+          impact: formImpact.trim(),
+          link_url: formLink.trim(),
+        })
+        setAchievements((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+      } else {
+        const created = await createPartyAchievement({
+          achievement_date: formDate,
+          title: formTitle.trim(),
+          summary: formSummary.trim(),
+          impact: formImpact.trim(),
+          link_url: formLink.trim(),
+        })
+        setAchievements((prev) => [created, ...prev])
+      }
+      resetForm()
     } catch (e) {
       setError(stringifyError(e))
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleEditAchievement = (achievement: PartyAchievement) => {
+    setEditingAchievementId(achievement.id)
+    setFormDate(achievement.achievement_date.slice(0, 10))
+    setFormTitle(achievement.title)
+    setFormSummary(achievement.summary)
+    setFormImpact(achievement.impact)
+    setFormLink(achievement.link_url)
   }
 
   const handleDeleteAchievement = async (id: string) => {
@@ -109,7 +137,9 @@ export default function PartyOverviewPage() {
       </div>
 
       <section className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">功績を登録</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          {editingAchievementId ? '功績を編集' : '功績を登録'}
+        </h2>
         <p className="text-sm text-gray-600 mt-1">
           法案対応、委員会活動、政策実現などを時系列で残せます。
         </p>
@@ -165,13 +195,24 @@ export default function PartyOverviewPage() {
               placeholder="https://..."
             />
           </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 disabled:opacity-50"
-          >
-            {saving ? '保存中...' : '功績を保存'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 disabled:opacity-50"
+            >
+              {saving ? '保存中...' : editingAchievementId ? '功績を更新' : '功績を保存'}
+            </button>
+            {editingAchievementId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+            )}
+          </div>
         </form>
       </section>
 
@@ -197,13 +238,22 @@ export default function PartyOverviewPage() {
                       <p className="text-sm font-semibold text-gray-900">{achievement.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{achievement.achievement_date}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAchievement(achievement.id)}
-                      className="text-xs text-red-600 hover:text-red-800"
-                    >
-                      削除
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEditAchievement(achievement)}
+                        className="text-xs text-mirai-700 hover:text-mirai-900"
+                      >
+                        編集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAchievement(achievement.id)}
+                        className="text-xs text-red-600 hover:text-red-800"
+                      >
+                        削除
+                      </button>
+                    </div>
                   </div>
                   {achievement.summary && (
                     <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{achievement.summary}</p>

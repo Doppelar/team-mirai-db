@@ -62,6 +62,7 @@ export default function TopPage() {
   }, [])
 
   const currentMonth = new Date().toISOString().slice(0, 7)
+  const currentMonthLabel = `${currentMonth.slice(0, 4)}年${currentMonth.slice(5, 7)}月`
   const memberCards = useMemo(() => {
     return members.map((member) => {
       const memberReports = reports.filter(
@@ -97,16 +98,42 @@ export default function TopPage() {
     })
   }, [members, reports, activities, currentMonth, agenda])
 
+  const monthSummary = useMemo(() => {
+    let totalReports = 0
+    let totalMemos = 0
+    memberCards.forEach((card) => {
+      totalReports += card.reportCount
+      totalMemos += card.memoCount
+    })
+    return {
+      memberCount: memberCards.length,
+      totalReports,
+      totalMemos,
+    }
+  }, [memberCards])
+
   if (loading) return <LoadingSpinner />
   if (error) return <ErrorMessage message={error} />
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">TOPページ</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          今月の議員活動を一覧で確認できます。過去の活動は各議員ページから参照できます。
+      <div className="rounded-2xl bg-gradient-to-br from-mirai-700 via-mirai-600 to-sky-600 text-white p-6 sm:p-8 mb-6 shadow-lg">
+        <p className="text-xs tracking-wide uppercase opacity-90">Team Mirai Activity Dashboard</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mt-2">TOPページ</h1>
+        <p className="text-sm sm:text-base text-white/90 mt-2">
+          {currentMonthLabel}の議員活動を、委員会情報付きでまとめて確認できます。
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs">
+            議員 {monthSummary.memberCount}名
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs">
+            動画投稿 {monthSummary.totalReports}件
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs">
+            月次メモ {monthSummary.totalMemos}件
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -114,17 +141,17 @@ export default function TopPage() {
           <Link
             key={member.id}
             to={`/members/${member.id}`}
-            className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+            className="group bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all"
           >
             <div className="flex items-start gap-3">
               {member.avatar_url ? (
                 <img
                   src={member.avatar_url}
                   alt={`${member.name}の顔写真`}
-                  className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
                 />
               ) : (
-                <span className="w-12 h-12 rounded-full bg-mirai-100 flex items-center justify-center text-lg font-bold text-mirai-700">
+                <span className="w-12 h-12 rounded-full bg-mirai-100 flex items-center justify-center text-lg font-bold text-mirai-700 shadow-sm">
                   {member.name.charAt(0)}
                 </span>
               )}
@@ -134,9 +161,15 @@ export default function TopPage() {
               </div>
             </div>
 
-            <div className="mt-3 text-sm text-gray-700">
-              <p>今月の動画投稿: {reportCount}件</p>
-              <p>今月の月次入力: {memoCount}件</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-gray-500">動画投稿</p>
+                <p className="text-gray-900 font-semibold mt-0.5">{reportCount}件</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 px-3 py-2">
+                <p className="text-gray-500">月次メモ</p>
+                <p className="text-gray-900 font-semibold mt-0.5">{memoCount}件</p>
+              </div>
             </div>
 
             {committees.length > 0 && (
@@ -152,19 +185,23 @@ export default function TopPage() {
               </div>
             )}
 
-            {latestReport && (
-              <p className="mt-3 text-xs text-gray-600">
-                最新投稿: {latestReport.report_date} ・ {latestReport.title}（
-                {detectCategory(latestReport, agenda)}）
-              </p>
-            )}
-            {latestActivity && (
-              <p className="mt-1 text-xs text-gray-600">
-                最新メモ: {latestActivity.activity_month.slice(0, 7)} ・ {latestActivity.title}
-              </p>
-            )}
+            <div className="mt-3 space-y-1">
+              {latestReport && (
+                <p className="text-xs text-gray-600 line-clamp-1">
+                  最新投稿: {latestReport.report_date} ・ {latestReport.title}（
+                  {detectCategory(latestReport, agenda)}）
+                </p>
+              )}
+              {latestActivity && (
+                <p className="text-xs text-gray-600 line-clamp-1">
+                  最新メモ: {latestActivity.activity_month.slice(0, 7)} ・ {latestActivity.title}
+                </p>
+              )}
+            </div>
 
-            <p className="mt-3 text-sm text-mirai-700 font-medium">月別活動ページへ →</p>
+            <p className="mt-3 text-sm text-mirai-700 font-medium group-hover:text-mirai-800">
+              月別活動ページへ →
+            </p>
           </Link>
         ))}
       </div>

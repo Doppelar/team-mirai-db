@@ -9,6 +9,7 @@ import {
   fetchMemberMonthlyActivities,
   fetchMembers,
   fetchReports,
+  updateMemberMonthlyActivity,
 } from '../lib/supabase'
 import type { Agenda, Member, MemberMonthlyActivity, Report } from '../types/database'
 
@@ -44,11 +45,12 @@ export default function MemberActivityPage() {
   const [agenda, setAgenda] = useState<Agenda[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [formMonth, setFormMonth] = useState('')
+  const [formDate, setFormDate] = useState('')
   const [formTitle, setFormTitle] = useState('')
   const [formCommittee, setFormCommittee] = useState('')
   const [formContent, setFormContent] = useState('')
   const [formLink, setFormLink] = useState('')
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export default function MemberActivityPage() {
         setReports(reportsData.filter((report) => report.member_ids.includes(id)))
         setAgenda(agendaData)
         setActivities(activitiesData)
-        setFormMonth(new Date().toISOString().slice(0, 7))
+        setFormDate(new Date().toISOString().slice(0, 10))
       } catch (e) {
         setError(stringifyError(e))
       } finally {
@@ -77,31 +79,57 @@ export default function MemberActivityPage() {
     load()
   }, [id])
 
-  const handleCreateActivity = async (e: FormEvent) => {
+  const resetForm = () => {
+    setEditingActivityId(null)
+    setFormDate(new Date().toISOString().slice(0, 10))
+    setFormTitle('')
+    setFormCommittee('')
+    setFormContent('')
+    setFormLink('')
+  }
+
+  const handleSaveActivity = async (e: FormEvent) => {
     e.preventDefault()
     if (!id) return
-    if (!formMonth || !formTitle.trim()) return
+    if (!formDate || !formTitle.trim()) return
     setSaving(true)
     setError(null)
     try {
-      const created = await createMemberMonthlyActivity({
-        member_id: id,
-        activity_month: `${formMonth}-01`,
-        committee: formCommittee.trim(),
-        title: formTitle.trim(),
-        content: formContent.trim(),
-        link_url: formLink.trim(),
-      })
-      setActivities((prev) => [created, ...prev])
-      setFormTitle('')
-      setFormCommittee('')
-      setFormContent('')
-      setFormLink('')
+      if (editingActivityId) {
+        const updated = await updateMemberMonthlyActivity(editingActivityId, {
+          activity_month: formDate,
+          committee: formCommittee.trim(),
+          title: formTitle.trim(),
+          content: formContent.trim(),
+          link_url: formLink.trim(),
+        })
+        setActivities((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+      } else {
+        const created = await createMemberMonthlyActivity({
+          member_id: id,
+          activity_month: formDate,
+          committee: formCommittee.trim(),
+          title: formTitle.trim(),
+          content: formContent.trim(),
+          link_url: formLink.trim(),
+        })
+        setActivities((prev) => [created, ...prev])
+      }
+      resetForm()
     } catch (e) {
       setError(stringifyError(e))
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleEditActivity = (activity: MemberMonthlyActivity) => {
+    setEditingActivityId(activity.id)
+    setFormDate(activity.activity_month.slice(0, 10))
+    setFormTitle(activity.title)
+    setFormCommittee(activity.committee)
+    setFormContent(activity.content)
+    setFormLink(activity.link_url)
   }
 
   const handleDeleteActivity = async (activityId: string) => {
@@ -155,19 +183,33 @@ export default function MemberActivityPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{member.name}</h1>
         {member.role && <p className="text-gray-500 mt-1">{member.role}</p>}
+        {member.homepage_url && (
+          <a
+            href={member.homepage_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block text-sm text-mirai-700 hover:text-mirai-900 mt-2"
+          >
+            ホームページ
+          </a>
+        )}
         <p className="text-sm text-gray-600 mt-2">月ごとの活動内容を一覧表示します。</p>
       </div>
 
       <section className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">月次活動を入力</h2>
-        <p className="text-sm text-gray-600 mt-1">動画以外の活動も月ごとに記録できます。</p>
-        <form onSubmit={handleCreateActivity} className="mt-4 space-y-3">
+        <h2 className="text-lg font-semibold text-gray-900">
+          {editingActivityId ? '活動を編集' : '活動を入力'}
+        </h2>
+        <p className="text-sm text-gray-600 mt-1">
+          動画以外の活動も日付つきで記録できます。表示は月ごと・日付順です。
+        </p>
+        <form onSubmit={handleSaveActivity} className="mt-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">対象月</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">日付</label>
             <input
-              type="month"
-              value={formMonth}
-              onChange={(e) => setFormMonth(e.target.value)}
+              type="date"
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-mirai-500"
             />
@@ -213,13 +255,24 @@ export default function MemberActivityPage() {
               placeholder="https://..."
             />
           </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 disabled:opacity-50"
-          >
-            {saving ? '保存中...' : '月次活動を保存'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 disabled:opacity-50"
+            >
+              {saving ? '保存中...' : editingActivityId ? '活動を更新' : '活動を保存'}
+            </button>
+            {editingActivityId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+            )}
+          </div>
         </form>
       </section>
 
@@ -243,6 +296,7 @@ export default function MemberActivityPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-sky-900">{activity.title}</p>
+                      <p className="text-xs text-sky-700 mt-0.5">日付: {activity.activity_month.slice(0, 10)}</p>
                       {activity.committee && (
                         <p className="text-xs text-sky-700 mt-0.5">委員会: {activity.committee}</p>
                       )}
@@ -262,13 +316,22 @@ export default function MemberActivityPage() {
                         </a>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteActivity(activity.id)}
-                      className="text-xs text-red-600 hover:text-red-800"
-                    >
-                      削除
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEditActivity(activity)}
+                        className="text-xs text-sky-700 hover:text-sky-900"
+                      >
+                        編集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteActivity(activity.id)}
+                        className="text-xs text-red-600 hover:text-red-800"
+                      >
+                        削除
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
