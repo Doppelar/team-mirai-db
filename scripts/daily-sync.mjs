@@ -6,6 +6,7 @@
 // - ほかの出演者のチャンネル（ショート以外） → member_monthly_activities
 // - 議員の note（NOTE_ACCOUNTS） → member_monthly_activities
 // - 党の「国会記録」note（質疑・発言・討論の全文） → member_monthly_activities
+// - 議員の公式サイトの「国会での活動」（HOMEPAGE_SOURCES） → 質疑のテーマを題名にする・なければ足す
 // X・Instagram・Threads・TikTok はログインなしで投稿を読めないため対象外。
 // すでにある動画（動画ID）・活動（リンク）は足さない。
 
@@ -31,6 +32,12 @@ const NOTE_ACCOUNTS = [
   { account: 'dobassie', member: '土橋' },
 ]
 const NOTE_RSS = 'https://note.com/team_mirai_log/rss'
+// 「国会での活動」を載せている議員の公式サイト（RSS がないのでページから読む）
+const HOMEPAGE_SOURCES = [{ url: 'https://eitarosuda.com/', member: '須田', house: '衆議院' }]
+// 公式サイトの質疑カード: <a class="qa" href="…"> … 2026.7.22<span class="qa-c">国土交通委員会</span> … <div class="qa-t">テーマ</div>
+const QA_CARD = /<a class="qa" href="([^"]+)"[\s\S]*?class="qa-date">(\d{4})\.(\d{1,2})\.(\d{1,2})<span class="qa-c">([^<]+)<\/span>[\s\S]*?class="qa-t">([^<]+)</g
+// 自動で付けた題名（手で直していないもの）
+const AUTO_TITLE = /^\S+で(質疑・発言|質疑|発言|討論|質問)$/
 
 // 動画のハッシュタグや note の名前（漢字）→ 出演者名の頭（DB の名前は空白を除いて前方一致で探す）
 const ALIASES = {
@@ -110,7 +117,7 @@ async function main() {
     db('members?select=id,name,youtube_url'),
     db('agenda?select=id,name'),
     db('reports?select=youtube_url'),
-    db('member_monthly_activities?select=link_url'),
+    db('member_monthly_activities?select=id,link_url,title'),
   ])
   const member = (head) => members.find((m) => plain(m.name).startsWith(head) || (head === 'チームみらい公式' && m.name.includes('公式')))
   const tagId = (name) => agenda.find((a) => a.name === name)?.id
@@ -225,15 +232,48 @@ async function main() {
     haveLinks.add(link)
   }
 
+  // 5. 議員の公式サイトの「国会での活動」→ 質疑のテーマを題名にする（なければ足す）
+  const titleUpdates = []
+  for (const site of HOMEPAGE_SOURCES) {
+    const m = member(site.member)
+    if (!m) { warnings.push(`出演者が見つかりません: ${site.member}`); continue }
+    const res = await fetch(site.url, { headers: UA })
+    if (!res.ok) { warnings.push(`公式サイトが読めません: ${site.url} ${res.status}`); continue }
+    const cards = [...(await res.text()).matchAll(QA_CARD)]
+    if (!cards.length) warnings.push(`公式サイトの国会活動が読めません（ページの作りが変わったかも）: ${site.url}`)
+    const content = `${m.name.replace(/[\s　]/g, '')}さんの公式サイト（${new URL(site.url).host}）の「国会での活動」より。質疑の全文はリンク先で読めます。`
+    for (const [, link, y, mo, d, committee, topic0] of cards) {
+      const topic = decode(topic0).trim()
+      const pending = newActivities.find((a) => a.link_url === link)
+      const saved = activities.find((a) => a.link_url === link)
+      if (pending) Object.assign(pending, { title: topic, content })
+      else if (saved) {
+        // 自動で付けた題名（「〜で質疑」など）のときだけ差し替える。手で直した題名は残す
+        if (saved.title !== topic && AUTO_TITLE.test(saved.title)) titleUpdates.push({ id: saved.id, title: topic, content, label: `${m.name} ${topic}` })
+      } else {
+        newActivities.push({
+          member_id: m.id, activity_month: `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`,
+          committee: `${site.house} ${decode(committee).trim()}`, title: topic, content, link_url: link,
+        })
+        haveLinks.add(link)
+      }
+    }
+  }
+
   console.log(`動画 ${newReports.length} 件`)
   for (const r of newReports) console.log(`  ${r.report_date} ${r.title}`)
   console.log(`活動 ${newActivities.length} 件`)
   for (const a of newActivities) console.log(`  ${a.activity_month} ${members.find((m) => m.id === a.member_id)?.name} ${a.title}`)
+  console.log(`題名の差し替え ${titleUpdates.length} 件`)
+  for (const u of titleUpdates) console.log(`  ${u.label}`)
   for (const w of warnings) console.warn(`注意: ${w}`)
   if (DRY_RUN) return console.log('（--dry-run のため書き込んでいません）')
 
   if (newReports.length) await db('reports', { method: 'POST', body: JSON.stringify(newReports), headers: { Prefer: 'return=minimal' } })
   if (newActivities.length) await db('member_monthly_activities', { method: 'POST', body: JSON.stringify(newActivities), headers: { Prefer: 'return=minimal' } })
+  for (const u of titleUpdates) {
+    await db(`member_monthly_activities?id=eq.${u.id}`, { method: 'PATCH', body: JSON.stringify({ title: u.title, content: u.content }) })
+  }
   console.log('書き込み完了')
 }
 
