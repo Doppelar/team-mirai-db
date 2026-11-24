@@ -141,7 +141,7 @@ async function main() {
       if (short && !ch.shorts) continue
       const info = await videoInfo(v.id)
       if (info.upcoming) continue // 配信前・配信中のものは、終わってから足す
-      const kind = short ? 'ショート' : /週刊チームみらいNEWS/.test(v.title) ? '週報' : PRESS.test(v.title) ? '定例会見' : '関連動画'
+      const kind = short ? 'ショート' : /週刊チームみらいNEWS|週次報告/.test(v.title) ? '週報' : PRESS.test(v.title) ? '定例会見' : '関連動画'
       const who = membersIn(v.title)
       const fallback = ch.member
       const tags = [...TOPICS.filter(([, re]) => re.test(v.title)).map(([n]) => tagId(n)), tagId(kind)].filter(Boolean)
@@ -201,19 +201,25 @@ async function main() {
     const pub = tag(item, 'pubDate')
     if (!link || haveLinks.has(link) || new Date(pub) < since) continue
     // 例: 【全文】衆議院 内閣委員会 質疑／国会対策委員長・高山聡史（2026年11月18日）
-    const t = title.match(/^【全文】(\S+)\s+(.+?)\s+(質疑|発言|討論)／(?:.*・)?(.+?)（(\d{4})年(\d{1,2})月(\d{1,2})日/)
-    if (!t) { warnings.push(`読めない題名: ${title}`); continue }
-    const [, house, body, act, name, y, mo, d] = t
-    const m = ALIASES[name] ? member(ALIASES[name]) : null
-    if (!m) { warnings.push(`出演者が見つかりません: ${name}`); continue }
+    //     【全文】衆議院本会議 健康保険法等改正案に対する討論／チームみらい 政調会長・古川あおい（2026年4月28日）
+    const head = title.match(/^【全文】(衆議院|参議院)\s*(.+?)／/)
+    if (!head) { warnings.push(`読めない題名: ${title}`); continue }
+    const name = Object.keys(ALIASES).find((k) => title.replace(/[\s・]/g, '').includes(k))
+    const m = name ? member(ALIASES[name]) : null
+    if (!m) { warnings.push(`出演者が見つかりません: ${title}`); continue }
+    const [, house, rest] = head
+    const simple = rest.trim().match(/^(\S+?)\s*(質疑・発言|質疑|発言|討論|質問)$/)
+    const body = simple ? simple[1] : rest.trim().split(/\s+/)[0]
+    const d = title.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/)
     const desc = tag(item, 'description').replace(/<[^>]+>/g, ' ').replace(/続きをみる/g, '').replace(/\s+/g, ' ').trim()
     const detail = (desc.match(/(案件[＝:：][\s\S]*|答弁者[＝:：][\s\S]*)$/) || [])[1] || ''
     newActivities.push({
       member_id: m.id,
-      activity_month: `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`,
+      // 題名の日付が切れていれば公開日
+      activity_month: d ? `${d[1]}-${d[2].padStart(2, '0')}-${d[3].padStart(2, '0')}` : jstDate(pub),
       committee: `${house} ${body}`,
-      title: `${body}で${act}`,
-      content: (detail || desc).slice(0, 1000),
+      title: simple ? `${body}で${simple[2]}` : rest.trim(),
+      content: (detail || desc).slice(0, 1000) || '質問と答弁の全文は、リンク先の国会記録（note）で読めます。',
       link_url: link,
     })
     haveLinks.add(link)
