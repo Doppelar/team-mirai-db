@@ -14,6 +14,8 @@ import {
   isSupabaseConfigured,
 } from '../lib/supabase'
 import { getYouTubeThumbnail } from '../lib/youtube'
+import { categoryLabel, categoryTagIds as toCategoryTagIds, detectCategory } from '../lib/categories'
+import type { ReportCategory } from '../lib/categories'
 import type { Report, Member, Agenda } from '../types/database'
 
 function stringifyError(error: unknown): string {
@@ -39,22 +41,9 @@ function stringifyError(error: unknown): string {
   }
 }
 
-function isShortTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('ショート') || normalizedName.includes('short')
-}
-
-function isWeeklyTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('週報') || normalizedName.includes('weekly')
-}
-
-function isRelatedTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('関連動画') || normalizedName.includes('related')
-}
-
-export default function LongVideosPage() {
+/** 関連動画・定例会見など、ひとつの分類の動画一覧。 */
+export default function LongVideosPage({ category = 'related' }: { category?: ReportCategory }) {
+  const label = categoryLabel(category)
   const [reports, setReports] = useState<Report[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [agenda, setAgenda] = useState<Agenda[]>([])
@@ -87,36 +76,13 @@ export default function LongVideosPage() {
     loadData()
   }, [])
 
-  const shortTagIds = useMemo(
-    () => new Set(agenda.filter(isShortTag).map((tag) => tag.id)),
-    [agenda]
-  )
-  const weeklyTagIds = useMemo(
-    () => new Set(agenda.filter(isWeeklyTag).map((tag) => tag.id)),
-    [agenda]
-  )
-  const relatedTagIds = useMemo(
-    () => new Set(agenda.filter(isRelatedTag).map((tag) => tag.id)),
-    [agenda]
-  )
-  const categoryTagIds = useMemo(
-    () => new Set([...shortTagIds, ...weeklyTagIds, ...relatedTagIds]),
-    [shortTagIds, weeklyTagIds, relatedTagIds]
-  )
+  const categoryTagIds = useMemo(() => toCategoryTagIds(agenda), [agenda])
   const relatedVideoReports = useMemo(
     () =>
       reports.filter(
-        (report) => {
-          if (!report.youtube_url?.trim()) return false
-          const category = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
-            ? 'short'
-            : report.agenda_ids.some((tagId) => relatedTagIds.has(tagId))
-            ? 'related'
-            : 'weekly'
-          return category === 'related'
-        }
+        (report) => report.youtube_url?.trim() && detectCategory(report, agenda) === category
       ),
-    [reports, shortTagIds, relatedTagIds]
+    [reports, agenda, category]
   )
 
   const selectableTags = useMemo(() => {
@@ -161,7 +127,7 @@ export default function LongVideosPage() {
       <ConfigWarning show={!isSupabaseConfigured} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">関連動画一覧</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{label}一覧</h1>
         <Link
           to="/reports/new"
           className="inline-flex items-center justify-center px-4 py-2 bg-mirai-600 text-white rounded-xl hover:bg-mirai-700 transition-colors font-medium text-sm"
@@ -252,7 +218,7 @@ export default function LongVideosPage() {
       {error && <ErrorMessage message={error} onRetry={loadData} />}
 
       {!loading && !error && relatedVideoReports.length === 0 && (
-        <div className="text-center py-12 text-gray-500">関連動画の投稿がまだ登録されていません</div>
+        <div className="text-center py-12 text-gray-500">{label}の投稿がまだ登録されていません</div>
       )}
 
       {!loading && !error && relatedVideoReports.length > 0 && sortedReports.length === 0 && (

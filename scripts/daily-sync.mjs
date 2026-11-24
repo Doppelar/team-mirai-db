@@ -38,6 +38,8 @@ const ALIASES = {
   武藤かず子: '武藤', 安野貴博: '安野', 林拓海: '林', 小林修平: '小林', 須田英太郎: '須田',
   山田瑛理: '山田えり', 宇佐美登: '宇佐美', 加藤直樹: '加藤直樹', 山田ゆうじ: '山田ゆうじ',
 }
+// 定例会見に分ける題名
+const PRESS = /定例会見|党首会見|ぶら下がり会見|記者会見/
 // 話題タグ（既存のタグ名）とキーワード
 const TOPICS = [
   ['消費税減税', /消費税|消費減税/],
@@ -139,7 +141,7 @@ async function main() {
       if (short && !ch.shorts) continue
       const info = await videoInfo(v.id)
       if (info.upcoming) continue // 配信前・配信中のものは、終わってから足す
-      const kind = short ? 'ショート' : /週刊チームみらいNEWS/.test(v.title) ? '週報' : '関連動画'
+      const kind = short ? 'ショート' : /週刊チームみらいNEWS/.test(v.title) ? '週報' : PRESS.test(v.title) ? '定例会見' : '関連動画'
       const who = membersIn(v.title)
       const fallback = ch.member
       const tags = [...TOPICS.filter(([, re]) => re.test(v.title)).map(([n]) => tagId(n)), tagId(kind)].filter(Boolean)

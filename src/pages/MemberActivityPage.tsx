@@ -11,6 +11,7 @@ import {
   fetchReports,
   updateMemberMonthlyActivity,
 } from '../lib/supabase'
+import { categoryLabel, detectCategory } from '../lib/categories'
 import type { Agenda, Member, MemberMonthlyActivity, Report } from '../types/database'
 
 function stringifyError(error: unknown): string {
@@ -25,16 +26,6 @@ function monthKey(dateStr: string): string {
 function toMonthLabel(key: string): string {
   const [year, month] = key.split('-')
   return `${year}年${month}月`
-}
-
-function detectCategory(report: Report, agenda: Agenda[]): '週報' | 'ショート' | '関連動画' {
-  const tags = report.agenda_ids
-    .map((id) => agenda.find((tag) => tag.id === id))
-    .filter((tag): tag is Agenda => Boolean(tag))
-    .map((tag) => tag.name.toLowerCase())
-  if (tags.some((name) => name.includes('ショート') || name.includes('short'))) return 'ショート'
-  if (tags.some((name) => name.includes('関連動画') || name.includes('related'))) return '関連動画'
-  return '週報'
 }
 
 export default function MemberActivityPage() {
@@ -343,7 +334,7 @@ export default function MemberActivityPage() {
                 >
                   <p className="text-sm font-medium text-gray-900">{report.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {report.report_date} ・ {detectCategory(report, agenda)}
+                    {report.report_date} ・ {categoryLabel(detectCategory(report, agenda))}
                   </p>
                 </Link>
               ))}

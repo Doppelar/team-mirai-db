@@ -21,8 +21,9 @@ export default function App() {
           <Route index element={<TopPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="weekly-reports" element={<ReportsPage />} />
+          <Route path="press-conferences" element={<LongVideosPage key="press" category="press" />} />
           <Route path="shorts" element={<ShortsPage />} />
-          <Route path="related-videos" element={<LongVideosPage />} />
+          <Route path="related-videos" element={<LongVideosPage key="related" />} />
           <Route path="long-videos" element={<LongVideosPage />} />
           <Route path="party" element={<PartyOverviewPage />} />
           <Route path="reports/new" element={<ReportFormPage />} />

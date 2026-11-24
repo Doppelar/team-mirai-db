@@ -22,6 +22,11 @@ export const appNavItems: AppNavItem[] = [
     description: '週報カテゴリの投稿を検索・絞り込みできます。',
   },
   {
+    to: '/press-conferences',
+    label: '定例会見',
+    description: '定例会見・党首会見・ぶら下がり会見の動画を一覧表示します。',
+  },
+  {
     to: '/shorts',
     label: 'ショート一覧',
     description: 'ショートカテゴリの動画投稿を一覧表示します。',
@@ -54,7 +59,7 @@ export const appNavItems: AppNavItem[] = [
   {
     to: '/reports/new',
     label: '投稿登録',
-    description: '週報・ショート・関連動画を新規登録します。',
+    description: '週報・定例会見・ショート・関連動画を新規登録します。',
     showInHeader: false,
   },
 ]

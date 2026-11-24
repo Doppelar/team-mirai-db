@@ -14,6 +14,7 @@ import {
   isSupabaseConfigured,
 } from '../lib/supabase'
 import { getYouTubeThumbnail } from '../lib/youtube'
+import { categoryTagIds as toCategoryTagIds, detectCategory } from '../lib/categories'
 import type { Report, Member, Agenda } from '../types/database'
 
 function stringifyError(error: unknown): string {
@@ -78,37 +79,7 @@ export default function ReportsPage() {
     return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
   }
 
-  const shortTagIds = useMemo(() => {
-    const ids = agenda
-      .filter((tag) => {
-        const normalizedName = tag.name.toLowerCase()
-        return normalizedName.includes('ショート') || normalizedName.includes('short')
-      })
-      .map((tag) => tag.id)
-    return new Set(ids)
-  }, [agenda])
-  const weeklyCategoryTagIds = useMemo(() => {
-    const ids = agenda
-      .filter((tag) => {
-        const normalizedName = tag.name.toLowerCase()
-        return normalizedName.includes('週報') || normalizedName.includes('weekly')
-      })
-      .map((tag) => tag.id)
-    return new Set(ids)
-  }, [agenda])
-  const relatedCategoryTagIds = useMemo(() => {
-    const ids = agenda
-      .filter((tag) => {
-        const normalizedName = tag.name.toLowerCase()
-        return normalizedName.includes('関連動画') || normalizedName.includes('related')
-      })
-      .map((tag) => tag.id)
-    return new Set(ids)
-  }, [agenda])
-  const categoryTagIds = useMemo(
-    () => new Set([...shortTagIds, ...weeklyCategoryTagIds, ...relatedCategoryTagIds]),
-    [shortTagIds, weeklyCategoryTagIds, relatedCategoryTagIds]
-  )
+  const categoryTagIds = useMemo(() => toCategoryTagIds(agenda), [agenda])
   const nonShortAgenda = useMemo(
     () => agenda.filter((tag) => !categoryTagIds.has(tag.id)),
     [agenda, categoryTagIds]
@@ -116,11 +87,7 @@ export default function ReportsPage() {
 
   const normalizedSearch = search.trim().toLowerCase()
   const filteredReports = reports.filter((report) => {
-    const category = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
-      ? 'short'
-      : report.agenda_ids.some((tagId) => relatedCategoryTagIds.has(tagId))
-      ? 'related'
-      : 'weekly'
+    const category = detectCategory(report, agenda)
     if (category !== 'weekly') return false
 
     const matchesMember = !activeMemberId || report.member_ids.includes(activeMemberId)

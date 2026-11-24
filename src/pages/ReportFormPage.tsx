@@ -10,9 +10,9 @@ import {
   updateReport,
   createAgenda,
 } from '../lib/supabase'
+import { CATEGORY_TAGS, detectCategory, isCategoryTag, tagCategory } from '../lib/categories'
+import type { ReportCategory } from '../lib/categories'
 import type { Member, Agenda } from '../types/database'
-
-type ReportCategory = 'weekly' | 'short' | 'related'
 
 function stringifyError(error: unknown): string {
   if (error instanceof Error) {
@@ -35,53 +35,6 @@ function stringifyError(error: unknown): string {
   } catch {
     return String(error)
   }
-}
-
-function isWeeklyCategoryTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('週報') || normalizedName.includes('weekly')
-}
-
-function isShortCategoryTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('ショート') || normalizedName.includes('short')
-}
-
-function isRelatedCategoryTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('関連動画') || normalizedName.includes('related')
-}
-
-function isCategoryTag(tag: Agenda): boolean {
-  return isWeeklyCategoryTag(tag) || isShortCategoryTag(tag) || isRelatedCategoryTag(tag)
-}
-
-const CATEGORY_TAG_SEEDS: Array<{
-  category: ReportCategory
-  name: string
-  color: string
-  description: string
-}> = [
-  { category: 'weekly', name: '週報', color: '#2563EB', description: '週報用の分類タグ' },
-  { category: 'short', name: 'ショート', color: '#7C3AED', description: 'ショート動画用の分類タグ' },
-  { category: 'related', name: '関連動画', color: '#059669', description: '関連動画用の分類タグ' },
-]
-
-function detectCategoryFromReport(report: { agenda_ids: string[] }, tags: Agenda[]): ReportCategory {
-  const tagMap = new Map(tags.map((tag) => [tag.id, tag]))
-  const hasShort = report.agenda_ids.some((id) => {
-    const tag = tagMap.get(id)
-    return tag ? isShortCategoryTag(tag) : false
-  })
-  if (hasShort) return 'short'
-
-  const hasRelated = report.agenda_ids.some((id) => {
-    const tag = tagMap.get(id)
-    return tag ? isRelatedCategoryTag(tag) : false
-  })
-  if (hasRelated) return 'related'
-
-  return 'weekly'
 }
 
 export default function ReportFormPage() {
@@ -113,11 +66,9 @@ export default function ReportFormPage() {
         ])
         setMembers(membersData)
         let agendaData = initialAgendaData
-        const missingCategorySeeds = CATEGORY_TAG_SEEDS.filter(({ category }) => {
-          if (category === 'weekly') return !agendaData.some(isWeeklyCategoryTag)
-          if (category === 'short') return !agendaData.some(isShortCategoryTag)
-          return !agendaData.some(isRelatedCategoryTag)
-        })
+        const missingCategorySeeds = CATEGORY_TAGS.filter(
+          ({ category }) => !agendaData.some((tag) => tagCategory(tag) === category)
+        )
 
         if (missingCategorySeeds.length > 0) {
           for (const seed of missingCategorySeeds) {
@@ -143,7 +94,7 @@ export default function ReportFormPage() {
           setContent(report.content)
           setYoutubeUrl(report.youtube_url)
           setVideoDuration(report.video_duration)
-          setCategory(detectCategoryFromReport(report, agendaData))
+          setCategory(detectCategory(report, agendaData))
           setSelectedMemberIds(report.member_ids)
           const nextAgendaIds = report.agenda_ids.filter((agendaId) => {
             const tag = agendaData.find((item) => item.id === agendaId)
@@ -183,12 +134,7 @@ export default function ReportFormPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const selectedCategoryTag =
-        category === 'short'
-          ? agenda.find(isShortCategoryTag)
-          : category === 'related'
-          ? agenda.find(isRelatedCategoryTag)
-          : agenda.find(isWeeklyCategoryTag)
+      const selectedCategoryTag = agenda.find((tag) => tagCategory(tag) === category)
 
       if (!selectedCategoryTag) {
         throw new Error('分類タグの取得に失敗しました。タグ管理でカテゴリタグを確認してください。')
@@ -311,9 +257,11 @@ export default function ReportFormPage() {
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-mirai-500"
           >
-            <option value="weekly">週報</option>
-            <option value="short">ショート</option>
-            <option value="related">関連動画</option>
+            {CATEGORY_TAGS.map((c) => (
+              <option key={c.category} value={c.category}>
+                {c.name}
+              </option>
+            ))}
           </select>
         </div>
 

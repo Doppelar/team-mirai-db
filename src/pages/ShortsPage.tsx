@@ -14,6 +14,7 @@ import {
   isSupabaseConfigured,
 } from '../lib/supabase'
 import { getYouTubeThumbnail } from '../lib/youtube'
+import { categoryTagIds as toCategoryTagIds, detectCategory } from '../lib/categories'
 import type { Report, Member, Agenda } from '../types/database'
 
 function stringifyError(error: unknown): string {
@@ -37,21 +38,6 @@ function stringifyError(error: unknown): string {
   } catch {
     return String(error)
   }
-}
-
-function isShortTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('ショート') || normalizedName.includes('short')
-}
-
-function isWeeklyTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('週報') || normalizedName.includes('weekly')
-}
-
-function isRelatedTag(tag: Agenda): boolean {
-  const normalizedName = tag.name.toLowerCase()
-  return normalizedName.includes('関連動画') || normalizedName.includes('related')
 }
 
 export default function ShortsPage() {
@@ -87,31 +73,10 @@ export default function ShortsPage() {
     loadData()
   }, [])
 
-  const shortTags = useMemo(() => agenda.filter(isShortTag), [agenda])
-  const shortTagIds = useMemo(() => new Set(shortTags.map((tag) => tag.id)), [shortTags])
-  const weeklyTagIds = useMemo(
-    () => new Set(agenda.filter(isWeeklyTag).map((tag) => tag.id)),
-    [agenda]
-  )
-  const relatedTagIds = useMemo(
-    () => new Set(agenda.filter(isRelatedTag).map((tag) => tag.id)),
-    [agenda]
-  )
-  const categoryTagIds = useMemo(
-    () => new Set([...shortTagIds, ...weeklyTagIds, ...relatedTagIds]),
-    [shortTagIds, weeklyTagIds, relatedTagIds]
-  )
+  const categoryTagIds = useMemo(() => toCategoryTagIds(agenda), [agenda])
   const shortReports = useMemo(
-    () =>
-      reports.filter((report) => {
-        const category = report.agenda_ids.some((tagId) => shortTagIds.has(tagId))
-          ? 'short'
-          : report.agenda_ids.some((tagId) => relatedTagIds.has(tagId))
-          ? 'related'
-          : 'weekly'
-        return category === 'short'
-      }),
-    [reports, shortTagIds, relatedTagIds]
+    () => reports.filter((report) => detectCategory(report, agenda) === 'short'),
+    [reports, agenda]
   )
   const selectableTags = useMemo(() => {
     const tagIds = new Set<string>()
