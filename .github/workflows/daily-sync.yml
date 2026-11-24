@@ -1,0 +1,29 @@
+name: 毎日の自動追加
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 毎朝 6:00（日本時間）
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "何日前までさかのぼるか"
+        default: "3"
+      dry_run:
+        description: "書き込まずに確認だけする"
+        type: boolean
+        default: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: YouTube と国会記録から新しいものを足す
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: node scripts/daily-sync.mjs --days=${{ inputs.days || '3' }} ${{ inputs.dry_run && '--dry-run' || '' }}
