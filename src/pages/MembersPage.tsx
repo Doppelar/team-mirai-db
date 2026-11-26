@@ -171,7 +171,7 @@ export default function MembersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">出演者一覧</h1>
           <p className="text-sm text-gray-500 mt-1">
-            各カードの「月別活動ページ」から、議員ごとの月次活動に移動できます。
+            各カードの「月別活動ページ」から、出演者ごとの月次活動に移動できます。
           </p>
         </div>
         <button

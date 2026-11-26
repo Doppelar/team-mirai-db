@@ -8,6 +8,7 @@ import {
   fetchMembers,
   fetchReports,
 } from '../lib/supabase'
+import { countByKind, kindLabel, memberKind } from '../lib/member-kind'
 import type { Agenda, Member, MemberMonthlyActivity, Report } from '../types/database'
 
 function stringifyError(error: unknown): string {
@@ -106,7 +107,7 @@ export default function TopPage() {
       totalMemos += card.memoCount
     })
     return {
-      memberCount: memberCards.length,
+      kinds: countByKind(memberCards.map((card) => card.member)),
       totalReports,
       totalMemos,
     }
@@ -121,12 +122,14 @@ export default function TopPage() {
         <p className="text-xs tracking-wide uppercase opacity-90">Team Mirai Activity Dashboard</p>
         <h1 className="text-2xl sm:text-3xl font-bold mt-2">TOPページ</h1>
         <p className="text-sm sm:text-base text-white/90 mt-2">
-          {currentMonthLabel}の議員活動を、委員会情報付きでまとめて確認できます。
+          {currentMonthLabel}の議員・党の活動を、委員会情報付きでまとめて確認できます。
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs">
-            議員 {monthSummary.memberCount}名
-          </span>
+          {monthSummary.kinds.map(({ kind, count }) => (
+            <span key={kind} className="px-2.5 py-1 rounded-full bg-white/20 text-xs">
+              {kindLabel(kind, count)}
+            </span>
+          ))}
           <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs">
             動画投稿 {monthSummary.totalReports}件
           </span>
@@ -156,7 +159,12 @@ export default function TopPage() {
                 </span>
               )}
               <div className="min-w-0">
-                <h2 className="font-semibold text-gray-900">{member.name}</h2>
+                <h2 className="font-semibold text-gray-900">
+                  {member.name}
+                  <span className="ml-2 align-middle text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                    {memberKind(member)}
+                  </span>
+                </h2>
                 {member.role && <p className="text-xs text-gray-500 mt-0.5">{member.role}</p>}
               </div>
             </div>

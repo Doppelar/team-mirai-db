@@ -9,7 +9,7 @@ export const appNavItems: AppNavItem[] = [
   {
     to: '/',
     label: 'TOPページ',
-    description: '議員ごとに今月の最新活動と委員会情報を確認できます。',
+    description: '議員・党スタッフなど出演者ごとに今月の最新活動と委員会情報を確認できます。',
   },
   {
     to: '/search',
